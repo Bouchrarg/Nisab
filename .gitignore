@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pym
+*.pystuff
+.python-version
+
+# Virtual environments
+venv/
+.env/
+.venv/
+env/
+ENV/
+
+# Odoo cache and generated data
+odoo_cache.json
+*.log
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+node_modules/
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vite / build artifacts
+frontend/.vite/
+/dist/
+
+# Environment files
+.env
+*.local
+
+# Editor directories
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Python bytecode
+.pytest_cache/
+coverage/
+htmlcov/
+
+# Misc
+*.cache
+*.sqlite3
+*.db

@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ─── DESIGN TOKENS ────────────────────────────────────────────────── */
+:root {
+  /* Palette Nisab (from Figma design system) */
+  --encre:    #16181D;
+  --ardoise:  #4B5163;
+  --sourdine: #6B7280;
+  --toile:    #F5F6F8;
+  --bordure:  #E3E6EB;
+  --surface:  #FFFFFF;
+
+  /* Primary: Seuil bleu */
+  --seuil:      #2451D6;
+  --seuil-dark: #1B3FA8;
+  --seuil-soft: #EAF0FE;
+
+  /* Status */
+  --conforme:       #1D8A4C;
+  --conforme-soft:  #E7F6EC;
+  --vigilance:      #C2670C;
+  --vigilance-soft: #FDF1E1;
+  --critique:       #C0281C;
+  --critique-soft:  #FBEAE9;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Menlo', monospace;
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px 0 rgba(22,24,29,0.04), 0 1px 6px -1px rgba(22,24,29,0.06);
+  --shadow-md:   0 4px 12px 0 rgba(22,24,29,0.08), 0 2px 4px 0 rgba(22,24,29,0.04);
+
+  /* Radii */
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-card: 12px;
+  --radius-full: 9999px;
+}
+
+/* ─── RESET ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--encre);
+  background: var(--toile);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv02","cv03","cv04","cv11";
+}
+
+/* JetBrains Mono pour données chiffrées, scores, montants, références légales */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--seuil);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bordure); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #c5cbd4; }
