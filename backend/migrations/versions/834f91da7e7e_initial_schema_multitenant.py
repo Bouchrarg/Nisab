@@ -43,7 +43,7 @@ def upgrade() -> None:
         sa.Column("nom_complet", sa.String(200), server_default=""),
         sa.Column(
             "role",
-            sa.Enum("collaborateur", "dirigeant_pme", "admin_cabinet", name="role_utilisateur"),
+            sa.Enum("collaborateur", "dirigeant_pme", "admin_cabinet", "admin_plateforme", name="role_utilisateur"),
             nullable=False,
         ),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
@@ -287,26 +287,6 @@ def upgrade() -> None:
             )
         )
     """)
-
-    # journal_acces : pas de RLS ici — écritures/lectures système gérées en Phase 7.
-
-    # ─────────────────────────────────────────────────────────────────────
-    # ATTENTION (à vérifier manuellement après le déploiement) :
-    # la RLS Postgres est ignorée par tout rôle superuser ou possédant
-    # l'attribut BYPASSRLS. Le rôle par défaut d'une connexion Supabase
-    # (souvent `postgres`) a ce comportement. Pour que ces policies aient
-    # un effet réel, DATABASE_URL doit pointer vers un rôle applicatif
-    # dédié, créé sans BYPASSRLS, par exemple :
-    #
-    #   CREATE ROLE nisab_app LOGIN PASSWORD '...';
-    #   GRANT ALL ON ALL TABLES IN SCHEMA public TO nisab_app;
-    #   ALTER ROLE nisab_app NOBYPASSRLS;
-    #
-    # Sans cette étape, le code applicatif (set_tenant_context) s'exécute
-    # correctement mais les policies ne filtrent rien : c'est un point de
-    # contrôle à valider explicitement en Phase 1/2, pas juste un détail.
-    # ─────────────────────────────────────────────────────────────────────
-
 
 def downgrade() -> None:
     for table in [

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   RefreshCw, PlayCircle, Radio, CheckSquare, CheckCircle2, Trash2,
-  Database, Clock, ChevronLeft, ChevronRight,
+  Database, Clock, ChevronLeft, ChevronRight, UploadCloud, FileText,
 } from 'lucide-react'
 import Badge from '../components/ui/Badge'
-import { API_URL } from '../config/api'
+import { apiFetch } from '../config/api'
 
 export default function AdminPage() {
   const [stats, setStats] = useState(null)
@@ -27,13 +27,26 @@ export default function AdminPage() {
   const [dedupeResult, setDedupeResult] = useState(null)
   const [ingestRunning, setIngestRunning] = useState(false)
 
+  // Upload de note circulaire DGI (Lot 2.2) — voir admin.py::upload_circulaire.
+  // Un seul article en base par circulaire (pas de découpage "Article N",
+  // une circulaire n'a pas cette structure), rattaché explicitement aux
+  // références CGI qu'elle commente : c'est ce rattachement qui permet au
+  // chat de ne jamais la citer seule (rag_retrieval._filtrer_circulaires_isolees).
+  const [circulaireForm, setCirculaireForm] = useState({
+    label: '', reference: '', date_version: '', articles_cgi_commentes: '',
+  })
+  const [circulaireFile, setCirculaireFile] = useState(null)
+  const [circulaireUploading, setCirculaireUploading] = useState(false)
+  const [circulaireResult, setCirculaireResult] = useState(null)
+  const [circulaireError, setCirculaireError] = useState(null)
+
   const fetchAll = useCallback(async () => {
     setLoadingStats(true)
     try {
       const [sRes, srcRes, logRes] = await Promise.all([
-        fetch(`${API_URL}/admin/corpus/stats`),
-        fetch(`${API_URL}/admin/corpus/sources`),
-        fetch(`${API_URL}/admin/pipeline/log`),
+        apiFetch(`/admin/corpus/stats`),
+        apiFetch(`/admin/corpus/sources`),
+        apiFetch(`/admin/pipeline/log`),
       ])
       if (sRes.ok) setStats(await sRes.json())
       if (srcRes.ok) {
@@ -56,7 +69,7 @@ export default function AdminPage() {
   const fetchArticles = useCallback(async (page = 1, statut = articleFilter) => {
     setLoadingArticles(true)
     try {
-      const res = await fetch(`${API_URL}/admin/articles?statut=${statut}&page=${page}&limit=30`)
+      const res = await apiFetch(`/admin/articles?statut=${statut}&page=${page}&limit=30`)
       if (res.ok) {
         const d = await res.json()
         setArticles(d.articles || [])
@@ -75,14 +88,14 @@ export default function AdminPage() {
   }, [articleFilter, fetchArticles])
 
   const openArticle = async (id) => {
-    const res = await fetch(`${API_URL}/admin/articles/${id}`)
+    const res = await apiFetch(`/admin/articles/${id}`)
     if (res.ok) setActiveArticle(await res.json())
   }
 
   const validateSelected = async () => {
     const ids = [...selectedIds]
     if (!ids.length) return
-    await fetch(`${API_URL}/admin/articles/validate`, {
+    await apiFetch(`/admin/articles/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids }),
@@ -93,7 +106,7 @@ export default function AdminPage() {
 
   const validateAllPending = async () => {
     if (!window.confirm(`Valider les ${articlesTotal} articles en attente ?`)) return
-    await fetch(`${API_URL}/admin/articles/validate`, {
+    await apiFetch(`/admin/articles/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ all_pending: true }),
@@ -105,7 +118,7 @@ export default function AdminPage() {
   const rejectSelected = async () => {
     const ids = [...selectedIds]
     if (!ids.length || !window.confirm(`Supprimer ${ids.length} article(s) ?`)) return
-    await fetch(`${API_URL}/admin/articles/reject`, {
+    await apiFetch(`/admin/articles/reject`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids }),
@@ -116,7 +129,7 @@ export default function AdminPage() {
   }
 
   const deduplicate = async () => {
-    const res = await fetch(`${API_URL}/admin/articles/deduplicate`, { method: 'POST' })
+    const res = await apiFetch(`/admin/articles/deduplicate`, { method: 'POST' })
     if (res.ok) {
       setDedupeResult(await res.json())
       fetchArticles(articlesPage, articleFilter)
@@ -127,7 +140,7 @@ export default function AdminPage() {
   const triggerIngest = async () => {
     setIngestRunning(true)
     try {
-      await fetch(`${API_URL}/admin/ingest/run`, { method: 'POST' })
+      await apiFetch(`/admin/ingest/run`, { method: 'POST' })
       fetchAll()
     } finally {
       setIngestRunning(false)
@@ -151,7 +164,7 @@ export default function AdminPage() {
     setPipelineRunning(true)
     setLastPipelineResult(null)
     try {
-      const res = await fetch(`${API_URL}/admin/pipeline/run`, { method: 'POST' })
+      const res = await apiFetch(`/admin/pipeline/run`, { method: 'POST' })
       const d = await res.json()
       setLastPipelineResult(d)
       fetchAll()
@@ -164,12 +177,52 @@ export default function AdminPage() {
     setMonitorRunning(true)
     setLastMonitorResult(null)
     try {
-      const res = await fetch(`${API_URL}/admin/monitor/run`, { method: 'POST' })
+      const res = await apiFetch(`/admin/monitor/run`, { method: 'POST' })
       const d = await res.json()
       setLastMonitorResult(d)
       fetchAll()
     } finally {
       setMonitorRunning(false)
+    }
+  }
+
+  const uploadCirculaire = async (e) => {
+    e.preventDefault()
+    if (!circulaireFile) {
+      setCirculaireError('Sélectionnez un PDF.')
+      return
+    }
+    const references = circulaireForm.articles_cgi_commentes.split(',').map((r) => r.trim()).filter(Boolean)
+    if (!references.length) {
+      setCirculaireError('Indiquez au moins un article CGI commenté (obligatoire — voir la note ci-dessous).')
+      return
+    }
+    setCirculaireUploading(true)
+    setCirculaireError(null)
+    setCirculaireResult(null)
+    try {
+      const form = new FormData()
+      form.append('label', circulaireForm.label)
+      form.append('reference', circulaireForm.reference)
+      form.append('date_version', circulaireForm.date_version)
+      form.append('articles_cgi_commentes', circulaireForm.articles_cgi_commentes)
+      form.append('fichier', circulaireFile)
+      const res = await apiFetch('/admin/corpus/circulaires/upload', { method: 'POST', body: form })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.detail || `L'extraction a échoué (code ${res.status}).`)
+      }
+      const data = await res.json()
+      setCirculaireResult(data)
+      setCirculaireForm({ label: '', reference: '', date_version: '', articles_cgi_commentes: '' })
+      setCirculaireFile(null)
+      fetchAll()
+      fetchArticles(1, 'a_verifier')
+      setArticleFilter('a_verifier')
+    } catch (err) {
+      setCirculaireError(err.message)
+    } finally {
+      setCirculaireUploading(false)
     }
   }
 
@@ -190,7 +243,7 @@ export default function AdminPage() {
     <div>
       <div className="section-header">
         <div>
-          <div className="section-title">Administration du corpus</div>
+          <div className="section-title">Pipeline, veille & relecture du corpus</div>
           <div className="section-sub">Gestion des sources documentaires et du pipeline d'ingestion</div>
         </div>
         <button className="btn btn-secondary btn-sm" onClick={fetchAll} disabled={loadingStats}>
@@ -276,6 +329,88 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <div className="card-header">
+          <span className="card-title">Notes circulaires DGI</span>
+          <Badge cls="vigilance" dot>Upload manuel</Badge>
+        </div>
+        <div className="card-body">
+          <p style={{ fontSize: 12.5, color: 'var(--ardoise)', lineHeight: 1.6, marginBottom: 16 }}>
+            Une note circulaire commente un ou plusieurs articles du CGI (procédures, tolérances) sans porter
+            elle-même de numérotation d'article — elle devient donc UN article en base, jamais découpée. Le
+            rattachement aux articles CGI commentés est <strong>obligatoire</strong> : c'est ce qui garantit qu'elle
+            n'est jamais citée seule par l'assistant (une circulaire engage l'administration, pas le contribuable, et
+            ne peut pas contredire le CGI).
+          </p>
+          <form onSubmit={uploadCirculaire} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <label style={{ fontSize: 11.5, color: 'var(--sourdine)' }}>
+              Libellé
+              <input
+                required value={circulaireForm.label}
+                onChange={(e) => setCirculaireForm((f) => ({ ...f, label: e.target.value }))}
+                placeholder="Note circulaire n° 728"
+                style={{ display: 'block', width: '100%', marginTop: 4, fontSize: 12.5, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--bordure)' }}
+              />
+            </label>
+            <label style={{ fontSize: 11.5, color: 'var(--sourdine)' }}>
+              Référence citée par l'assistant
+              <input
+                required value={circulaireForm.reference}
+                onChange={(e) => setCirculaireForm((f) => ({ ...f, reference: e.target.value }))}
+                placeholder="Note circulaire n° 728"
+                style={{ display: 'block', width: '100%', marginTop: 4, fontSize: 12.5, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--bordure)' }}
+              />
+            </label>
+            <label style={{ fontSize: 11.5, color: 'var(--sourdine)' }}>
+              Date de publication
+              <input
+                required type="date" value={circulaireForm.date_version}
+                onChange={(e) => setCirculaireForm((f) => ({ ...f, date_version: e.target.value }))}
+                style={{ display: 'block', width: '100%', marginTop: 4, fontSize: 12.5, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--bordure)' }}
+              />
+            </label>
+            <label style={{ fontSize: 11.5, color: 'var(--sourdine)' }}>
+              Articles CGI commentés (séparés par des virgules)
+              <input
+                required value={circulaireForm.articles_cgi_commentes}
+                onChange={(e) => setCirculaireForm((f) => ({ ...f, articles_cgi_commentes: e.target.value }))}
+                placeholder="Article 145, Article 146"
+                style={{ display: 'block', width: '100%', marginTop: 4, fontSize: 12.5, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--bordure)' }}
+              />
+            </label>
+            <label style={{ fontSize: 11.5, color: 'var(--sourdine)', gridColumn: '1 / -1' }}>
+              Fichier PDF
+              <input
+                required type="file" accept=".pdf"
+                onChange={(e) => setCirculaireFile(e.target.files?.[0] || null)}
+                style={{ display: 'block', width: '100%', marginTop: 4, fontSize: 12.5 }}
+              />
+            </label>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={circulaireUploading}>
+                {circulaireUploading ? <span className="spinner" /> : <UploadCloud size={13} />}
+                Extraire et ajouter à la relecture
+              </button>
+            </div>
+          </form>
+          {circulaireError && (
+            <div className="alert critique" style={{ marginTop: 12 }}>
+              <div className="alert-dot" />
+              <div style={{ fontSize: 12 }}>{circulaireError}</div>
+            </div>
+          )}
+          {circulaireResult && (
+            <div className="alert conforme" style={{ marginTop: 12 }}>
+              <FileText size={14} style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: 12 }}>
+                Circulaire extraite et ajoutée en attente de relecture (rattachée à{' '}
+                {circulaireResult.articles_cgi_commentes?.join(', ')}) — validez-la ci-dessous pour la rendre citable.
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -376,7 +511,7 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                     {activeArticle.statut === 'a_verifier' && (
                       <button className="btn btn-primary btn-sm" onClick={async () => {
-                        await fetch(`${API_URL}/admin/articles/validate`, {
+                        await apiFetch(`/admin/articles/validate`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ ids: [activeArticle.id] }),

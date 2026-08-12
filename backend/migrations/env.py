@@ -19,7 +19,20 @@ config = context.config
 
 # On force l'URL depuis .env plutôt que depuis alembic.ini (évite de dupliquer
 # un secret dans un fichier versionné).
-config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+#
+# ADMIN_DATABASE_URL en priorité, et ce n'est pas un détail de confort : le rôle
+# applicatif (nisab_app) n'est délibérément PAS propriétaire des tables. C'est
+# ce qui rend la RLS réelle — Postgres n'applique pas les policies au
+# propriétaire d'une table, donc faire tourner l'app avec le rôle owner
+# annulerait silencieusement toute l'isolation multi-tenant.
+#
+# Conséquence : le rôle applicatif ne peut pas exécuter d'ALTER TABLE (il
+# reçoit « must be owner of table … »). Les migrations, qui sont du DDL,
+# doivent donc passer par le rôle propriétaire. Le repli sur DATABASE_URL
+# garde le fonctionnement sur un environnement où les deux rôles sont
+# confondus (base locale de développement).
+_migration_url = os.environ.get("ADMIN_DATABASE_URL") or os.environ["DATABASE_URL"]
+config.set_main_option("sqlalchemy.url", _migration_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

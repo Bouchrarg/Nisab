@@ -21,18 +21,32 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL manquant dans .env — requis pour la base applicative.")
 
-# Le projet utilise déjà psycopg v3 (voir vectorstore.py / requirements.txt), pas psycopg2.
-# On force le driver dans l'URL SQLAlchemy pour rester cohérent, même si .env contient
-# un DATABASE_URL "postgresql://" générique (format Supabase par défaut).
 _SQLALCHEMY_URL = (
     DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
     if DATABASE_URL.startswith("postgresql://")
     else DATABASE_URL
 )
 
-engine = create_engine(_SQLALCHEMY_URL, pool_pre_ping=True, future=True)
+#: psycopg3 prépare automatiquement côté serveur toute requête exécutée plus de
+#: `prepare_threshold` fois (5 par défaut), puis la réutilise par son nom
+#: (`_pg3_0`, `_pg3_1`...). Derrière le pooler Supabase en mode TRANSACTION,
+#: ce nom ne vaut rien : la transaction suivante peut être routée vers une
+#: autre connexion serveur, qui n'a jamais préparé ce statement, et Postgres
+#: répond `prepared statement "_pg3_0" does not exist`.
+#:
+#: Le déclencheur concret a été le contexte RLS reposé à chaque début de
+#: transaction (db_session._reposer_contexte_tenant) : `SELECT set_config(...)`
+#: franchit le seuil en quelques requêtes. Mais le piège préexistait pour
+#: n'importe quelle requête assez fréquente — il attendait juste son tour.
+#:
+#: `None` désactive la préparation côté serveur. C'est le réglage attendu
+#: derrière un pooler en mode transaction : on renonce à un cache de plan que
+#: le pooler rend de toute façon inutilisable.
+_connect_args = {"prepare_threshold": None} if "+psycopg:" in _SQLALCHEMY_URL else {}
 
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+engine = create_engine(_SQLALCHEMY_URL, pool_pre_ping=True, future=True, connect_args=_connect_args)
+
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False, future=True)
 
 
 class Base(DeclarativeBase):

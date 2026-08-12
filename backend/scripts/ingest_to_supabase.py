@@ -76,8 +76,41 @@ def texte_hash(texte: str) -> str:
     return hashlib.sha256(texte.encode("utf-8")).hexdigest()
 
 
+def _ensure_sqlite_circulaire_column(conn: sqlite3.Connection) -> None:
+    """
+    Même colonne, même idempotence que extract_circulaire.py::ensure_schema
+    (dupliquée plutôt qu'importée : ce script vit dans backend/scripts, l'autre
+    dans corpus-pipeline/scripts — deux projets distincts, cf. la même
+    convention déjà posée pour text_cleaning.py). Nécessaire ici aussi : ce
+    script lit `articles.articles_cgi_commentes` par SELECT explicite plus
+    bas, qui échouerait sur une base SQLite où aucune circulaire n'a encore
+    jamais été uploadée (colonne inexistante).
+    """
+    try:
+        conn.execute("ALTER TABLE articles ADD COLUMN articles_cgi_commentes TEXT")
+        conn.commit()
+    except sqlite3.OperationalError as exc:
+        if "duplicate column" not in str(exc).lower():
+            raise
+
+
+def _ensure_sqlite_statut_juridique_column(conn: sqlite3.Connection) -> None:
+    """
+    Même idempotence que _ensure_sqlite_circulaire_column, pour
+    `documents.statut_juridique` (cf. admin.py::qualifier_document / Lot 2.3).
+    """
+    try:
+        conn.execute("ALTER TABLE documents ADD COLUMN statut_juridique TEXT")
+        conn.commit()
+    except sqlite3.OperationalError as exc:
+        if "duplicate column" not in str(exc).lower():
+            raise
+
+
 def main(include_a_verifier: bool):
     sqlite_con = sqlite3.connect(CORPUS_DB_PATH)
+    _ensure_sqlite_circulaire_column(sqlite_con)
+    _ensure_sqlite_statut_juridique_column(sqlite_con)
     database_url = normalize_database_url(get_database_url())
     try:
         pg_con = psycopg.connect(database_url, autocommit=True, prepare_threshold=None)
@@ -88,19 +121,32 @@ def main(include_a_verifier: bool):
         raise
     register_vector(pg_con)
 
+    # `articles.articles_cgi_commentes` (notes circulaires DGI, cf.
+    # corpus-pipeline/scripts/extract_circulaire.py) n'existe pas dans le
+    # schéma Postgres historique — cette table vit hors Alembic (voir
+    # migration 92ce87978d93), donc son évolution passe par ce genre
+    # d'ALTER idempotent plutôt que par une révision Alembic. IF NOT EXISTS
+    # rend l'appel sûr à chaque exécution, y compris sur une base qui l'a déjà.
+    with pg_con.cursor() as cur:
+        cur.execute("ALTER TABLE articles ADD COLUMN IF NOT EXISTS articles_cgi_commentes TEXT")
+        # cf. admin.py::qualifier_document (Lot 2.3) — 'en_vigueur' |
+        # 'remplacee_par:<document_id>', jamais renseigné pour un CGI.
+        cur.execute("ALTER TABLE documents ADD COLUMN IF NOT EXISTS statut_juridique TEXT")
+
     # 1. Sync documents
     docs = sqlite_con.execute(
-        "SELECT id, label, type, url, date_version, statut FROM documents"
+        "SELECT id, label, type, url, date_version, statut, statut_juridique FROM documents"
     ).fetchall()
     with pg_con.cursor() as cur:
         for d in docs:
             cur.execute(
                 """
-                INSERT INTO documents (id, label, type, url, date_version, statut)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO documents (id, label, type, url, date_version, statut, statut_juridique)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO UPDATE SET
                     label = EXCLUDED.label, statut = EXCLUDED.statut,
-                    date_version = EXCLUDED.date_version
+                    date_version = EXCLUDED.date_version,
+                    statut_juridique = EXCLUDED.statut_juridique
                 """,
                 d,
             )
@@ -110,7 +156,7 @@ def main(include_a_verifier: bool):
     statuts = ("valide", "a_verifier") if include_a_verifier else ("valide",)
     placeholders = ",".join("?" for _ in statuts)
     articles = sqlite_con.execute(
-        f"""SELECT document_id, reference, texte, source_label, date_version, statut
+        f"""SELECT document_id, reference, texte, source_label, date_version, statut, articles_cgi_commentes
             FROM articles WHERE statut IN ({placeholders})""",
         statuts,
     ).fetchall()
@@ -119,7 +165,7 @@ def main(include_a_verifier: bool):
     to_embed = []
     unchanged = 0
     with pg_con.cursor() as cur:
-        for document_id, reference, texte, source_label, date_version, statut in articles:
+        for document_id, reference, texte, source_label, date_version, statut, articles_cgi_commentes in articles:
             h = texte_hash(texte)
             cur.execute(
                 "SELECT texte_hash FROM articles WHERE document_id=%s AND reference=%s",
@@ -129,7 +175,7 @@ def main(include_a_verifier: bool):
             if row and row[0] == h:
                 unchanged += 1
                 continue
-            to_embed.append((document_id, reference, texte, h, source_label, date_version, statut))
+            to_embed.append((document_id, reference, texte, h, source_label, date_version, statut, articles_cgi_commentes))
 
     print(f"{unchanged} article(s) inchangé(s), {len(to_embed)} à (ré)embedder")
 
@@ -143,23 +189,25 @@ def main(include_a_verifier: bool):
         for i in range(0, len(to_embed), BATCH):
             batch = to_embed[i : i + BATCH]
             embeddings = embed_passages([b[2] for b in batch])
-            for (document_id, reference, texte, h, source_label, date_version, statut), emb in zip(
+            for (document_id, reference, texte, h, source_label, date_version, statut, articles_cgi_commentes), emb in zip(
                 batch, embeddings
             ):
                 cur.execute(
                     """
                     INSERT INTO articles
                         (document_id, reference, texte, texte_hash, source_label,
-                         date_version, statut, embedding, embedding_model, embedded_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, now())
+                         date_version, statut, embedding, embedding_model, embedded_at,
+                         articles_cgi_commentes)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, now(), %s)
                     ON CONFLICT (document_id, reference) DO UPDATE SET
                         texte = EXCLUDED.texte, texte_hash = EXCLUDED.texte_hash,
                         statut = EXCLUDED.statut, embedding = EXCLUDED.embedding,
                         embedding_model = EXCLUDED.embedding_model,
+                        articles_cgi_commentes = EXCLUDED.articles_cgi_commentes,
                         embedded_at = now(), updated_at = now()
                     """,
                     (document_id, reference, texte, h, source_label, date_version,
-                     statut, emb, "intfloat/multilingual-e5-base"),
+                     statut, emb, "intfloat/multilingual-e5-base", articles_cgi_commentes),
                 )
             print(f"  {min(i + BATCH, len(to_embed))}/{len(to_embed)} embeddés")
 

@@ -1,0 +1,37 @@
+# Blueprint Render — permet un déploiement reproductible ("New +" → "Blueprint"
+# dans le dashboard Render, en pointant sur ce repo) plutôt que de recliquer
+# chaque champ à la main. Les secrets (sync: false) restent à saisir une fois
+# dans le dashboard Render, jamais dans ce fichier.
+services:
+  - type: web
+    name: nisab-backend
+    runtime: python
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # api_router (app/api.py) expose /health sans préfixe et sans dépendance
+    # à la DB ni au modèle d'embeddings — healthcheck rapide, indépendant du
+    # risque mémoire du chargement de sentence-transformers.
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: NISAB_SECRET_KEY
+        sync: false
+      - key: NISAB_ALLOWED_ORIGINS
+        # Placeholder — à remplacer par l'URL Vercel réelle une fois le
+        # frontend déployé (dashboard Render, pas besoin de re-déployer via
+        # ce fichier pour ce changement-là).
+        value: http://localhost:5173

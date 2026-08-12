@@ -1,10 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { API_URL, apiFetch, setAccessToken } from '../config/api'
+import { API_URL, apiFetch, onAuthFailure, setAccessToken } from '../config/api'
 
 const AuthContext = createContext(null)
 
-// Le refresh_token est stocké en localStorage : c'est un compromis documenté
-// (voir Nisab_Plan_Implementation.md, Phase 2) — un cookie httpOnly émis par
+// Le refresh_token est stocké en localStorage : c'est un compromis - un cookie httpOnly émis par
 // le back-end serait plus sûr mais demande de servir front et back sur le
 // même domaine/sous-domaine. À revisiter en Phase 7 (sécurité).
 const REFRESH_KEY = 'nisab_refresh_token'
@@ -97,8 +96,21 @@ export function AuthProvider({ children }) {
     setStatus('anonymous')
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    const me = await fetchMe()
+    setUser(me)
+    return me
+  }, [fetchMe])
+
+  // api.js ne peut pas appeler logout() lui-même (pas de React) : il
+  // prévient via ce callback quand le refresh_token est lui aussi
+  // invalide/expiré, pour qu'on nettoie proprement l'état côté React.
+  useEffect(() => {
+    onAuthFailure(logout)
+  }, [logout])
+
   return (
-    <AuthContext.Provider value={{ user, status, login, register, logout }}>
+    <AuthContext.Provider value={{ user, status, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

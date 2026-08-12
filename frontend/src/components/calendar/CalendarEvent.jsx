@@ -22,8 +22,19 @@ export default function CalendarEvent({ e }) {
           <div className="event-title" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>{e.title}</span>
             {e.legal_article && (
-              <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', background: 'var(--toile)', border: '1px solid var(--bordure)', padding: '1px 6px', borderRadius: 4, color: 'var(--seuil)' }}>
-                {e.legal_article}
+              <span
+                title={e.sourced === false
+                  ? "Référence indicative, non vérifiée contre le corpus fiscal versionné (contrairement aux citations de l'audit/du chat)"
+                  : undefined}
+                style={{
+                  fontSize: 10, fontFamily: 'var(--font-mono)',
+                  background: e.sourced === false ? 'var(--toile)' : 'var(--toile)',
+                  border: e.sourced === false ? '1px dashed var(--sourdine)' : '1px solid var(--bordure)',
+                  padding: '1px 6px', borderRadius: 4,
+                  color: e.sourced === false ? 'var(--sourdine)' : 'var(--seuil)',
+                }}
+              >
+                {e.legal_article}{e.sourced === false && ' (non vérifié)'}
               </span>
             )}
             {e.doc_version && (

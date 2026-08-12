@@ -1,21 +1,44 @@
 import { useEffect, useRef, useState } from 'react'
 import { MessageSquare, Send, FileText, BookOpen } from 'lucide-react'
-import { API_URL } from '../config/api'
+import { apiFetch, dossierFetch, getActiveDossierId } from '../config/api'
+import { reflowText } from '../utils/text'
 
+// Les 3 langues reprennent volontairement les 4 mêmes sujets fiscaux : ça
+// garantit que le RAG retrouve les mêmes articles déjà vérifiés en français,
+// et ça rend la comparaison FR / darija / arabe directe (même question, même
+// citation attendue) plutôt que trois sujets qui n'ont rien à voir.
+// `rtl` sert uniquement à orienter le bouton — la darija latine (arabizi)
+// reste en alphabet latin, seul l'arabe classique s'écrit de droite à gauche.
 const SUGGESTIONS = [
-  'Quelles sociétés sont exclues du champ de l\'IS ?',
-  'Quel est le taux de TVA sur les médicaments ?',
-  'Quelles charges ne sont pas déductibles du résultat ?',
-  'Comment fonctionne l\'auto-liquidation de la TVA ?',
+  { text: 'Quelles sociétés sont exclues du champ de l\'IS ?' },
+  { text: 'Quel est le taux de TVA sur les médicaments ?' },
+  { text: 'Quelles charges ne sont pas déductibles du résultat ?' },
+  { text: 'Comment fonctionne l\'auto-liquidation de la TVA ?' },
+  { text: 'Wach kayn sociétés li ma-khassinch ykhelsou IS?' },
+  { text: 'Chhal howa taux dyal TVA 3la les médicaments?' },
+  { text: 'Chnou dyal les charges li ma-khassich thseb f résultat?' },
+  { text: 'Kifach khdama l\'auto-liquidation dyal TVA?' },
+  { text: 'ما هي الشركات المستثناة من الضريبة على الشركات؟', rtl: true },
+  { text: 'شحال هو سعر الضريبة على القيمة المضافة على الأدوية؟', rtl: true },
+  { text: 'شنو هي المصاريف غير القابلة للخصم من النتيجة؟', rtl: true },
+  { text: 'كيفاش كيخدم نظام التسوية الذاتية ديال الضريبة على القيمة المضافة؟', rtl: true },
 ]
 
-export default function ChatPage() {
+export default function ChatPage({ dossierId }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [activeLaw, setActiveLaw] = useState(null)
   const scrollRef = useRef(null)
   const textareaRef = useRef(null)
+
+  // Reset la conversation au changement de dossier — sinon les anciennes
+  // réponses (sourcées sur l'ancien dossier) restent affichées mélangées aux
+  // nouvelles, sans que rien ne signale le changement de contexte.
+  useEffect(() => {
+    setMessages([])
+    setActiveLaw(null)
+  }, [dossierId])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -32,10 +55,15 @@ export default function ChatPage() {
       { role: 'assistant', content: null },
     ])
     try {
-      const res = await fetch(`${API_URL}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: text, top_k: 5 }),
+      const hasDossier = !!getActiveDossierId()
+      const res = hasDossier
+        ? await dossierFetch('/chat', {
+            method: 'POST',
+            body: JSON.stringify({ query: text, top_k: 5 }),
+          })
+        : await apiFetch('/chat/general', {
+            method: 'POST',
+            body: JSON.stringify({ query: text, top_k: 5 }),
       })
       if (!res.ok) throw new Error(`Erreur ${res.status}`)
       const data = await res.json()
@@ -71,8 +99,13 @@ export default function ChatPage() {
               </div>
               <div className="suggestions-grid">
                 {SUGGESTIONS.map((s) => (
-                  <button key={s} className="suggestion" onClick={() => sendMessage(s)}>
-                    {s}
+                  <button
+                    key={s.text}
+                    className="suggestion"
+                    dir={s.rtl ? 'rtl' : undefined}
+                    onClick={() => sendMessage(s.text)}
+                  >
+                    {s.text}
                     <span style={{ color: 'var(--seuil)', marginLeft: 6, opacity: 0.6 }}>→</span>
                   </button>
                 ))}
@@ -85,7 +118,13 @@ export default function ChatPage() {
               <div key={i}>
                 <div className={`msg-row ${m.role}`}>
                   {m.role === 'assistant' && <div className="msg-avatar">N</div>}
-                  <div className={`bubble${m.content == null ? ' loading' : ''}`}>
+                  {/* Seule la bulle de reponse bascule en RTL, pas la page :
+                      l'interface reste en francais (voir bloc 4 du plan), c'est
+                      le contenu genere qui est arabe. */}
+                  <div
+                    className={`bubble${m.content == null ? ' loading' : ''}${m.langue === 'ar' || m.langue === 'ar_latin' ? ' msg-ar' : ''}`}
+                    dir={m.langue === 'ar' || m.langue === 'ar_latin' ? 'rtl' : undefined}
+                  >
                     {m.content ?? 'Consultation du corpus en cours…'}
                   </div>
                 </div>
@@ -127,6 +166,10 @@ export default function ChatPage() {
               {sending ? <span className="spinner" /> : <Send size={13} />}
             </button>
           </div>
+          <div style={{ fontSize: 11.5, color: 'var(--sourdine)', marginTop: 6, textAlign: 'center', lineHeight: 1.5 }}>
+            Posez votre question en français, en arabe ou en darija — les références légales
+            restent citées en français, telles qu'elles figurent au CGI.
+          </div>
         </div>
       </div>
 
@@ -148,7 +191,7 @@ export default function ChatPage() {
                 </div>
               </div>
               <div className="law-article-text">
-                {activeLaw.texte_complet || activeLaw.extrait}
+                {reflowText(activeLaw.texte_complet || activeLaw.extrait)}
               </div>
             </div>
           ) : (

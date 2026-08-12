@@ -93,7 +93,10 @@ def _extract_retry_after(exc: Exception) -> float | None:
 
 MAX_BACKOFF_SECONDS = 30.0  # au-delà, on bascule vers l'autre provider plutôt que d'attendre
 
-def _call_provider(client, model: str, messages: list, json_mode: bool, label: str, retries: int = 3):
+def _call_provider(
+    client, model: str, messages: list, json_mode: bool, label: str,
+    retries: int = 3, max_tokens: int | None = None,
+):
     kwargs = {
         "model": model,
         "messages": messages,
@@ -101,6 +104,8 @@ def _call_provider(client, model: str, messages: list, json_mode: bool, label: s
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+    if max_tokens is not None:
+        kwargs["max_tokens"] = max_tokens
 
     for attempt in range(retries):
         try:
@@ -135,12 +140,23 @@ def llm_call(
     label: str = "llm",
     json_mode: bool = False,
     model: str | None = None,
+    max_tokens: int | None = None,
 ) -> str | None:
     """
     Appel LLM texte avec fallback Groq → OpenRouter.
     `model` permet de choisir un modèle Groq spécifique pour cet appel
     (ex. GROQ_MODEL_FAST pour une tâche de filtrage). Si non précisé,
     GROQ_MODEL_DEFAULT est utilisé.
+
+    `max_tokens` plafonne la longueur de la RÉPONSE (pas du prompt). Laissé à
+    None par défaut partout où la sortie doit rester complète et non
+    tronquable (audit_*, correction_*, filtrage/reformulation JSON — y
+    couper la réponse casserait le parsing). N'est passé explicitement que
+    par la génération de réponse chat en mode "bref" (generation.py), pour
+    limiter le coût d'une question qui n'a besoin que de deux phrases —
+    aucun appel Groq/OpenRouter du reste du produit ne posait jusqu'ici de
+    limite, la sortie dépendait entièrement du défaut du provider.
+
     Retourne le contenu texte de la réponse ou None si tout échoue.
     """
     groq_model = model or GROQ_MODEL_DEFAULT
@@ -153,7 +169,7 @@ def llm_call(
     groq = _groq_client()
     if groq:
         try:
-            result = _call_provider(groq, groq_model, messages, json_mode, label)
+            result = _call_provider(groq, groq_model, messages, json_mode, label, max_tokens=max_tokens)
             return result
         except Exception as exc:
             print(f"[LLM] Groq échoué pour '{label}' ({exc}), tentative OpenRouter…")
@@ -162,7 +178,7 @@ def llm_call(
     openrouter = _openrouter_client()
     if openrouter:
         try:
-            result = _call_provider(openrouter, OPENROUTER_MODEL, messages, json_mode, label)
+            result = _call_provider(openrouter, OPENROUTER_MODEL, messages, json_mode, label, max_tokens=max_tokens)
             print(f"[LLM] '{label}' servi par OpenRouter ({OPENROUTER_MODEL})")
             return result
         except Exception as exc:
@@ -191,13 +207,16 @@ def llm_call_json(
     user_prompt: str,
     label: str = "llm_json",
     model: str | None = None,
+    max_tokens: int | None = None,
 ) -> dict | None:
     """
     Appel LLM avec réponse JSON forcée + fallback Groq → OpenRouter.
-    `model` : voir llm_call.
-    Retourne le dict parsé ou None si l'appel ou le parsing échoue.
+    `model` : voir llm_call. `max_tokens` : voir llm_call — à ne fixer ici que
+    si le schéma JSON attendu est petit et connu, une réponse JSON tronquée
+    ne parse plus du tout (contrairement à du texte, qui reste lisible même
+    coupé).
     """
-    raw = llm_call(system_prompt, user_prompt, label=label, json_mode=True, model=model)
+    raw = llm_call(system_prompt, user_prompt, label=label, json_mode=True, model=model, max_tokens=max_tokens)
     if raw is None:
         return None
     cleaned = _strip_json_fences(raw)

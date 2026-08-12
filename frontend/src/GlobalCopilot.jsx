@@ -1,7 +1,7 @@
 ﻿import { useEffect, useRef, useState } from "react"
 import { MessageSquare, X, Send, FileText, ChevronDown, Minimize2, Sparkles } from "lucide-react"
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
+import { dossierFetch } from "./config/api"
+import { reflowText } from "./utils/text"
 
 const VIEW_SUGGESTIONS = {
   dashboard: [
@@ -37,7 +37,7 @@ const VIEW_NAMES = {
   chat: "Assistant fiscal",
 }
 
-export default function GlobalCopilot({ activeView, findings }) {
+export default function GlobalCopilot({ activeView, findings, dossierId }) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState("")
@@ -46,6 +46,14 @@ export default function GlobalCopilot({ activeView, findings }) {
   const [minimized, setMinimized] = useState(false)
   const scrollRef = useRef(null)
   const textareaRef = useRef(null)
+
+  // Le composant reste monté d'une vue à l'autre (voir COPILOT_VIEWS dans
+  // App.jsx) — sans ça, changer de dossier laisserait l'historique de
+  // conversation de l'ancien dossier affiché à côté des réponses du nouveau.
+  useEffect(() => {
+    setMessages([])
+    setActiveLaw(null)
+  }, [dossierId])
 
   const buildContextPayload = () => {
     if (!findings || findings.length === 0) return null
@@ -56,7 +64,7 @@ export default function GlobalCopilot({ activeView, findings }) {
         title: f.title,
         severity: f.severity,
         invoice: f.invoice,
-        amount_risk: f.amount_risk,
+        amount_risk: f.categorie_montant === 'non_calculable' ? null : f.amount_risk,
         recommendation: f.recommendation,
       })),
     }
@@ -81,9 +89,8 @@ export default function GlobalCopilot({ activeView, findings }) {
       { role: "assistant", content: null },
     ])
     try {
-      const res = await fetch(`${API_URL}/chat`, {
+      const res = await dossierFetch("/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: text, top_k: 5, context_data: buildContextPayload(), active_view: activeView }),
       })
       if (!res.ok) throw new Error(`Erreur ${res.status}`)
@@ -194,7 +201,7 @@ export default function GlobalCopilot({ activeView, findings }) {
                     {activeLaw && m.sources?.some(s => s.id === activeLaw.id) && (
                       <div className="copilot-law-preview">
                         <div className="copilot-law-ref">{activeLaw.reference}</div>
-                        <div className="copilot-law-text">{activeLaw.texte_complet || activeLaw.extrait}</div>
+                        <div className="copilot-law-text">{reflowText(activeLaw.texte_complet || activeLaw.extrait)}</div>
                       </div>
                     )}
                   </div>

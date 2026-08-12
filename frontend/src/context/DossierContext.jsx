@@ -56,16 +56,31 @@ export function DossierProvider({ children }) {
       method: 'POST',
       body: JSON.stringify(payload),
     })
-    if (!res.ok) throw new Error('create_failed')
+    if (!res.ok) {
+      const detail = (await res.json().catch(() => null))?.detail
+      throw new Error(detail || 'Échec de la création du dossier.')
+    }
     const dossier = await res.json()
     await refreshDossiers()
     setActiveDossier(dossier)
     return dossier
   }, [refreshDossiers, setActiveDossier])
 
+  const renameDossier = useCallback(async (dossierId, raisonSociale) => {
+    const res = await apiFetch(`/dossiers/${dossierId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ raison_sociale: raisonSociale }),
+    })
+    if (!res.ok) throw new Error('rename_failed')
+    const dossier = await res.json()
+    await refreshDossiers()
+    if (activeDossier?.id === dossierId) setActiveDossier(dossier)
+    return dossier
+  }, [refreshDossiers, setActiveDossier, activeDossier])
+
   return (
     <DossierContext.Provider
-      value={{ dossiers, activeDossier, setActiveDossier, createDossier, refreshDossiers, loading }}
+      value={{ dossiers, activeDossier, setActiveDossier, createDossier, renameDossier, refreshDossiers, loading }}
     >
       {children}
     </DossierContext.Provider>

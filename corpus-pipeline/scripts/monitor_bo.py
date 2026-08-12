@@ -53,6 +53,31 @@ def log_event(conn, numero, annee, url, statut):
 
 
 def download_and_register(conn, numero, annee, url, suffix):
+    """
+    ## Correctif — date_version ne doit JAMAIS être la date de détection
+
+    Avant ce correctif, `date_version` recevait `datetime.now(...).date()` —
+    la date où monitor_bo.py a TROUVÉ le PDF, pas la date où il a été
+    PUBLIÉ. Or `veille._version_precedente` / `_existe_version_plus_recente`
+    ordonnent explicitement la chronologie légale sur `date_version` (et
+    refusent délibérément `date_extraction`, cf. leurs docstrings) : la
+    veille sur BO raisonnait donc sur une date fausse, potentiellement
+    inversée par rapport à la vraie chronologie de publication.
+
+    Aucun moyen fiable de dériver la date de publication depuis le seul
+    numéro/année du BO (la numérotation n'est pas régulièrement espacée dans
+    l'année) — plutôt que d'inventer une dérivation approximative, on laisse
+    `date_version` à NULL : `veille.py` traite déjà NULL comme « pas de
+    version comparable », exactement le comportement voulu tant que la vraie
+    date n'est pas connue. `date_telechargement`, lui, reste la date de
+    détection — il ne change pas de sens, on ne fait que ne plus le
+    dupliquer à tort dans `date_version`.
+
+    Le document reste `statut='a_qualifier'` : c'est le moment où un humain,
+    en lisant le PDF, doit confirmer la date de publication réelle via
+    `PATCH /admin/documents/{document_id}` (voir admin.py) avant que ses
+    articles ne soient comptés dans la chronologie de veille.
+    """
     doc_id = f"bo_{numero}{suffix.replace('-', '_')}_{annee}"
     dest = RAW_PDF_DIR / f"{doc_id}.pdf"
     try:
@@ -66,20 +91,19 @@ def download_and_register(conn, numero, annee, url, suffix):
     conn.execute(
         """
         INSERT INTO documents (id, label, type, url, date_version, chemin_local, date_telechargement, statut)
-        VALUES (?, ?, 'BULLETIN_OFFICIEL', ?, ?, ?, ?, 'a_qualifier')
+        VALUES (?, ?, 'BULLETIN_OFFICIEL', ?, NULL, ?, ?, 'a_qualifier')
         ON CONFLICT(id) DO NOTHING
         """,
         (
             doc_id,
             f"Bulletin Officiel n°{numero}{suffix} ({annee}) - detecte automatiquement",
             url,
-            datetime.now(timezone.utc).date().isoformat(),
             str(dest),
             datetime.now(timezone.utc).isoformat(),
         ),
     )
     conn.commit()
-    print(f"  [OK] Telecharge et enregistre (statut = a_qualifier) : {dest}")
+    print(f"  [OK] Telecharge et enregistre (statut = a_qualifier, date de publication a confirmer) : {dest}")
 
 
 def main():

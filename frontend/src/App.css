@@ -158,10 +158,18 @@
   padding: 0 24px;
 }
 
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .topbar-title {
   font-size: 15px;
   font-weight: 600;
   color: var(--encre);
+  padding-right: 16px;
+  border-right: 1px solid var(--bordure);
 }
 
 .topbar-actions {
@@ -1677,3 +1685,283 @@
 .copilot-send-btn:hover:not(:disabled) { background: var(--seuil-dark); }
 .copilot-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+
+/* ── Phase 2 : écran d'authentification ─────────────────────────────── */
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fond, #f5f6f8);
+}
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-card h1 { margin: 0; font-size: 22px; }
+.auth-subtitle { margin: 0 0 6px; color: var(--ardoise, #667); font-size: 13px; }
+.auth-card label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 500; }
+.auth-card input, .auth-card select {
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--bordure, #ddd);
+  font-size: 14px;
+}
+.auth-card button[type="submit"] {
+  margin-top: 6px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: var(--seuil, #2563eb);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.auth-card button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
+.auth-switch {
+  background: none;
+  border: none;
+  color: var(--seuil, #2563eb);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.auth-error { color: #c0392b; font-size: 12px; }
+
+/* ── Phase 3 : sélecteur de dossier (Topbar) + onboarding ───────────── */
+.dossier-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--toile);
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+  padding: 4px 6px 4px 10px;
+}
+.dossier-switcher-icon { color: var(--ardoise); flex-shrink: 0; }
+.dossier-switcher-select-wrap { position: relative; display: flex; align-items: center; }
+.dossier-switcher select {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--encre);
+  padding: 4px 20px 4px 4px;
+  cursor: pointer;
+  max-width: 180px;
+}
+.dossier-switcher select:focus { outline: none; }
+.dossier-switcher-chevron {
+  position: absolute;
+  right: 2px;
+  pointer-events: none;
+  color: var(--ardoise);
+}
+.dossier-switcher-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--bordure);
+  background: var(--surface);
+  color: var(--seuil);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dossier-switcher-add:hover { background: var(--seuil-soft); }
+.dossier-switcher-create { display: flex; align-items: center; gap: 6px; }
+.dossier-switcher-create input {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--bordure);
+  font-size: 13px;
+}
+.onboarding-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  color: var(--ardoise, #667);
+}
+
+/* ── Correctif : vue d'ensemble cabinet (cartes dossiers) ────────────── */
+.dossier-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.overview-widgets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.dossier-card {
+  background: #fff;
+  border: 1px solid var(--bordure, #e5e7eb);
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dossier-card:hover {
+  border-color: var(--seuil, #2563eb);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+.dossier-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dossier-card-name { font-weight: 600; font-size: 14px; }
+.dossier-card-sector { font-size: 12px; color: var(--ardoise, #667); }
+.dossier-card-open {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--seuil, #2563eb);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dossier-create-card {
+  background: #fff;
+  border: 1px solid var(--bordure, #e5e7eb);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.dossier-create-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  flex: 1;
+  min-width: 180px;
+}
+.dossier-create-card input {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--bordure, #ddd);
+  font-size: 13px;
+}
+.dossier-create-actions { display: flex; gap: 8px; }
+
+/* ── Correctif : shell admin_plateforme (séparé du shell cabinet) ────── */
+/* ═══ PLATFORM ADMIN SHELL ═══════════════════════════════════════════
+   Layout dédié admin_plateforme : sidebar de navigation + colonne
+   contenu scrollable. Même structure flex hauteur-contrainte que .shell
+   / .main-content / .page dans le shell cabinet — c'est ce qui manquait
+   avant (min-height:100vh à l'intérieur d'un #root en overflow:hidden
+   ne peut pas scroller, le contenu était simplement rogné). */
+.platform-admin-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--toile);
+}
+
+.platform-admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.platform-admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--bordure, #e5e7eb);
+  flex-shrink: 0;
+}
+.platform-admin-header h1 { font-size: 15px; margin: 0; }
+.platform-admin-body { flex: 1; overflow-y: auto; padding: 24px; }
+.platform-admin-body-inner { max-width: 1280px; margin: 0 auto; }
+
+/* Sidebar admin_plateforme : même look que .sidebar mais nav propre
+   (Vue d'ensemble / Organisations / Utilisateurs / Corpus). */
+.platform-admin-sidebar {
+  width: 212px;
+  flex-shrink: 0;
+  background: var(--encre);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ── Correctif : état vide inline pour une vue dossier sans dossier actif */
+.no-dossier-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 60px 20px;
+  color: var(--ardoise, #667);
+  text-align: center;
+}
+
+/* ── Profil + Invitations ─────────────────────────────────────────────── */
+.profile-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.profile-card {
+  background: #fff;
+  border: 1px solid var(--bordure, #e5e7eb);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.profile-card h3 { font-size: 14px; margin: 0; }
+.profile-card label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 500; }
+.profile-card input {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--bordure, #ddd);
+  font-size: 13px;
+}
+.profile-card input:disabled { background: var(--toile, #f5f6f8); color: var(--ardoise, #667); }
+.profile-msg { font-size: 12px; }
+.profile-msg.ok { color: var(--conforme, #1D8A4C); }
+.profile-msg.error { color: var(--critique, #C0281C); }
+
+.invitations-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--bordure, #e5e7eb); border-radius: 10px; overflow: hidden; }
+.invitations-table th, .invitations-table td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--bordure, #eee); }
+.invitations-table th { font-size: 11px; text-transform: uppercase; color: var(--ardoise, #667); font-weight: 600; background: var(--toile, #f9fafb); }
+.invitations-table tr:last-child td { border-bottom: none; }
+
+/* ═══ RÉPONSE EN ARABE ════════════════════════════════════════════════ */
+/* Appliquée à la seule bulle de réponse, jamais à la page : l'interface
+   reste en français (le cahier des charges scope l'arabe à l'assistant
+   conversationnel). Les références d'articles à l'intérieur restent en
+   français et s'affichent correctement grâce à l'algorithme bidi natif. */
+.bubble.msg-ar {
+  direction: rtl;
+  text-align: start;
+  font-family: 'Noto Sans Arabic', var(--font-sans);
+  font-size: 14px;
+  line-height: 1.9;
+}

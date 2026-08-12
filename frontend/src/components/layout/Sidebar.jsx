@@ -1,7 +1,8 @@
 import { NAV } from '../../constants/navigation'
 
-export default function Sidebar({ view, onChangeView, backendStatus }) {
+export default function Sidebar({ view, onChangeView, backendStatus, role }) {
   let lastSection = null
+  const items = NAV.filter((item) => !item.roles || item.roles.includes(role))
 
   return (
     <aside className="sidebar">
@@ -14,7 +15,7 @@ export default function Sidebar({ view, onChangeView, backendStatus }) {
       </div>
 
       <nav className="sidebar-nav">
-        {NAV.map(({ id, label, Icon, section }) => {
+        {items.map(({ id, label, Icon, section }) => {
           const showSection = section && section !== lastSection
           if (section) lastSection = section
           return (

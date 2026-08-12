@@ -6,6 +6,7 @@ Schéma d'URL prévisible (finances.gov.ma) :
 Ex. CGI 2026 → dossier 2025, fichier CGI-2026-FR.pdf
 """
 
+import argparse
 import json
 import sqlite3
 from datetime import datetime, timezone
@@ -107,9 +108,30 @@ def download_and_register(conn: sqlite3.Connection, fiscal_year: int, url: str):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    # --year cible directement UNE année passée (backfill) au lieu de sonder
+    # en avant : la boucle par défaut ne part que de `last_cgi_year + 1` et ne
+    # peut donc jamais aller chercher un millésime antérieur (2024, 2025...).
+    # Réutilise exactement download_and_register() — même enregistrement que
+    # pour un CGI détecté par la boucle forward, juste appelé directement.
+    parser.add_argument("--year", type=int, help="Télécharge/enregistre directement cette année (backfill), sans sonder en avant.")
+    args = parser.parse_args()
+
     RAW_PDF_DIR.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     seed_config_sources(conn)
+
+    if args.year:
+        url = cgi_url(args.year)
+        print(f"Backfill CGI {args.year} -> {url}")
+        if not check_url(url):
+            print(f"  [ERROR] CGI {args.year} introuvable a cette URL. Le nom de fichier a peut-etre change pour cette annee ; "
+                  f"a verifier/ajuster manuellement si besoin.")
+        elif download_and_register(conn, args.year, url):
+            print(f"CGI {args.year} enregistre dans le corpus.")
+        conn.close()
+        return
+
     state = load_state()
 
     last_year = state["last_cgi_year"]

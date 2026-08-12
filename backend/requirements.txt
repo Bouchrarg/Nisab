@@ -2,9 +2,51 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 psycopg[binary]==3.2.3
 pgvector==0.3.6
+psycopg2-binary>=2.9.6
+# sentence-transformers tire torch en dépendance transitive. Sans indication,
+# pip installe le wheel PyPI par défaut, qui embarque le support CUDA (paquets
+# nvidia-* associés, plusieurs centaines de Mo de plus à télécharger et à
+# installer) alors que Render/Oracle tournent en CPU pur — ça ralentit le
+# build et gonfle l'image pour rien. L'index officiel PyTorch publie des
+# wheels suffixées "+cpu", qui trient PLUS HAUT qu'une version sans suffixe
+# local au sens PEP 440 : une fois cet index ajouté, pip préfère la variante
+# CPU automatiquement, sans avoir besoin d'épingler de numéro de version.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
 sentence-transformers==3.3.1
 numpy>=2.2
 pydantic==2.9.2
 python-dotenv==1.0.1
 google-genai==1.3.0
 groq
+sqlalchemy==2.0.36
+alembic==1.14.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-multipart==0.0.12
+email-validator==2.2.0
+fpdf2
+
+# ── Phase 5 : ingestion élargie ─────────────────────────────────────────
+# Lecture des exports comptables CSV/Excel (app/connectors/fichier_connecteur.py).
+pandas>=2.2
+openpyxl>=3.1
+# Épinglé explicitement plutôt que laissé en dépendance transitive de
+# python-jose[cryptography] : le chiffrement des identifiants ERP (Fernet)
+# en dépend directement, une résolution différente le casserait en silence.
+cryptography>=42
+# Connecteur Sage (ODBC) — non implémenté, voir app/connectors/sage_connecteur.py.
+# Décommenter le jour où une instance Sage est disponible pour valider le mapping.
+# pyodbc>=5.1
+
+# ── OCR (extraction de champs sur facture scannée, app/ocr_extraction.py) ──
+# Import différé dans ocr_extraction._moteur_ocr() : le backend démarre même
+# sans ces paquets installés, comme pandas pour fichier_connecteur.py.
+# Poids assumé : paddlepaddle télécharge ~100 Mo de wheel, paddleocr ~250 Mo
+# de modèles au premier lancement (mis en cache dans ~/.paddlex ensuite).
+# lang="fr" uniquement pour l'instant — voir la docstring du module pour la
+# limite sur les factures en arabe.
+paddlepaddle>=3.3
+paddleocr>=3.7
+pillow>=10.0

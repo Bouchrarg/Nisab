@@ -7,6 +7,7 @@ from typing import List, Tuple
 import pdfplumber
 
 from config import DB_PATH, RAW_PDF_DIR, EXPORTS_DIR
+from text_cleaning import clean_article_text
 
 ARTICLE_PATTERN = re.compile(
     r"(?m)^\s*(Article\s+(?:premier|\d+)"
@@ -84,7 +85,7 @@ def split_by_article(full_text: str):
         start = m.start()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
         reference = m.group(1).strip()
-        texte = full_text[start:end].strip()
+        texte = clean_article_text(full_text[start:end].strip())
         issues = validate_chunk(reference, texte)
         if issues:
             print(f"    [WARNING] {reference}: {', '.join(issues)}")
