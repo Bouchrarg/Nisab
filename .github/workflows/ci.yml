@@ -1,0 +1,61 @@
+name: CI
+
+# Couverture volontairement PARTIELLE, à dire tel quel en soutenance plutôt
+# que de simuler une couverture totale : seuls les scripts qui ne dépendent
+# ni d'une base Postgres réelle ni d'une clé API LLM tournent ici
+# (`test_regles_montant.py`, `test_langue.py` — ce dernier dégrade
+# gracieusement sur sa partie retrieval si aucune base n'est joignable, cf.
+# son propre try/except). Les scripts qui écrivent en base ou appellent un
+# LLM réel (`test_rls_isolation.py`, `test_journal_acces.py`,
+# `test_metriques_*.py`, `test_push_odoo.py`, etc.) nécessitent des secrets
+# (DATABASE_URL/ADMIN_DATABASE_URL/GROQ_API_KEY) non configurés ici — ils
+# restent des vérifications manuelles, documentées dans CLAUDE.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-smoke-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Installer les dépendances backend
+        run: pip install -r requirements.txt
+
+      - name: test_regles_montant.py (moteur de calcul déterministe, sans DB/LLM)
+        run: python test_regles_montant.py
+
+      - name: test_langue.py (détection de langue ; partie retrieval ignorée sans DB)
+        run: python test_langue.py
+
+  frontend-lint-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Installer les dépendances frontend
+        run: npm ci
+
+      - name: Lint (oxlint)
+        run: npm run lint
+
+      - name: Build (Vite)
+        run: npm run build
