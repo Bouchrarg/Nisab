@@ -20,37 +20,55 @@ du CGI, Bulletin Officiel) — zéro affirmation sans source.
 ## Fonctionnalités
 
 - **Multi-tenant strict** : chaque cabinet (organisation) et ses dossiers
-  clients sont isolés par Row-Level Security au niveau PostgreSQL.
-- **4 rôles** : `collaborateur`, `dirigeant_pme` (accès lecture seule dédié),
-  `admin_cabinet`, `admin_plateforme` (équipe Nisab, supervision globale du
-  corpus et des cabinets).
+  clients sont isolés par Row-Level Security au niveau PostgreSQL — isolation
+  prouvée par un script automatisé (`test_rls_isolation.py`), pas seulement
+  affirmée.
+- **4 rôles** : `collaborateur`, `dirigeant_pme` (shell frontend dédié en
+  lecture seule, + app mobile Expo), `admin_cabinet`, `admin_plateforme`
+  (équipe Nisab, supervision globale du corpus et des cabinets).
 - **Audit IA des écritures** (`ai_auditor.py`) : pipeline RAG en deux temps
-  (retrieval large sur le corpus fiscal, puis filtrage de pertinence par LLM)
-  qui détecte les risques de non-conformité et les rattache à une citation.
+  (retrieval large sur le corpus fiscal, puis filtrage de pertinence par LLM),
+  complété par une détection réglée déterministe (`detection_reglee.py`) sur
+  les articles au calcul chiffrable — le RAG découvre, la règle chiffre.
 - **Assistant fiscal en langage naturel** (`rag_retrieval.py` /
-  `generation.py`) : questions/réponses sourcées sur le corpus CGI + Bulletin
-  Officiel.
-- **Calendrier fiscal** (`tax_calendar.py`) : échéances TVA/IS, volontairement
-  non-RAG (littéraux écrits à la main).
+  `generation.py`), bilingue français/arabe/darija latine (`langue.py`) :
+  questions/réponses sourcées sur le corpus CGI + Bulletin Officiel, citations
+  toujours en français même en réponse arabe.
+- **Calendrier fiscal** (`tax_calendar.py`) : échéances TVA/IS/IR/CNSS,
+  volontairement non-RAG (littéraux écrits à la main, `sourced: false`).
 - **Simulation de contrôle fiscal** (`control_simulator.py`) : génère un
-  argumentaire de défense à partir des alertes déjà détectées.
-- **Connecteur Odoo** (`odoo_connector.py`) : import des écritures comptables
-  via XML-RPC pour audit.
+  argumentaire de défense à partir des alertes déjà détectées, sans nouvelle
+  recherche RAG.
+- **Workflow agentique de correction** (`correction_agent.py`) : proposition
+  de correction sourcée → validation humaine → brouillon Odoo (`state=draft`,
+  jamais `action_post`) — le dernier geste comptable reste au comptable.
+- **Veille personnalisée** (`veille.py`) : diffusion ciblée par dossier, un
+  article concerne un dossier si celui-ci l'a déjà cité.
+- **Connecteurs comptables** : Odoo (XML-RPC, lecture ET écriture) et import
+  CSV/Excel (fusion, pas remplacement) via une interface commune
+  (`connectors/`). OCR de facture (PaddleOCR) en palier expérimental.
+- **Journal des accès** (`journal_acces.py`) : traçabilité des accès aux
+  données comptables/fiscales, exigence CNDP (loi 09-08).
 - **Invitations par token** pour l'onboarding des collaborateurs/dirigeants
-  (envoi SMTP prévu en phase 6, non encore implémenté).
+  (pas d'envoi SMTP automatique, lien à transmettre manuellement — choix de
+  MVP assumé).
 
 ## Architecture
 
 ### Backend (`backend/app/`)
 
 Un routeur par domaine, monté directement dans `main.py` (pas d'agrégateur
-central) :
+central), 85 routes au total :
 
 - `auth_router` → `/auth`
 - `invitations_router` → `/invitations`
 - `dossiers_router` → `/dossiers`
+- `ingestion_router` → `/dossiers` (import fichier, réconciliation)
+- `corrections_router` → `/dossiers` (workflow agentique)
+- `veille_router` → `/dossiers` (notifications)
 - `simulation_router` → pas de préfixe, chemins complets type
   `/dossiers/{id}/simulation/run`
+- `roi_router` → `/dossiers/{id}/roi`
 - `api_router` → pas de préfixe (`/health`, `/search`, `/law/feed`)
 - `admin_router` → `/admin` (gated `admin_plateforme`)
 
@@ -60,10 +78,13 @@ Autres modules clés :
   `get_tenant_db()` qui décode le JWT, résout l'organisation et pose le
   contexte RLS (`set_config('app.current_org_id', ...)`). Toute route
   tenant-scoped **doit** utiliser `get_tenant_db`.
-- `models.py` — schéma multitenant (14 tables) + enums (`RoleUtilisateur`,
-  `TypeOrganisation`, ...).
+- `models.py` — schéma multitenant + enums (`RoleUtilisateur`,
+  `TypeOrganisation`, ...), dont `JournalAcces` (traçabilité CNDP).
 - `compliance_checker.py` — **déprécié**, remplacé par la détection RAG-only
-  (`ai_auditor.py`). Ne pas relancer.
+  + réglée (`ai_auditor.py` / `detection_reglee.py`). Ne pas relancer.
+- `metrics.py` — chronométrage léger (embedding/retrieval/LLM/audit), utilisé
+  par les scripts `test_metriques_*.py` pour produire des chiffres cités en
+  soutenance.
 
 ### Frontend (`frontend/src/`)
 
@@ -72,20 +93,27 @@ Pas de react-router : routing manuel par `useState` + `localStorage`
 
 - `admin_plateforme` → `PlatformAdminShell`
 - `dirigeant_pme` → `DirigeantShell` (lecture seule)
-- sinon (cabinet) → `AppShell` (dashboard, audit, simulation, calendrier,
-  chat, Odoo, invitations, profil)
+- sinon (cabinet) → `AppShell` (dashboard, audit, corrections, simulation,
+  calendrier, chat, veille, Odoo, invitations, profil)
 
 Pas d'axios : wrapper `fetch` maison (`config/api.js`, `apiFetch` /
 `dossierFetch`). L'access token JWT vit en variable JS (pas de localStorage),
 seul le refresh token y est stocké.
+
+### Mobile (`nisab-mobile/`)
+
+App Expo (React Native) réservée au rôle `dirigeant_pme` : 3 écrans en
+lecture seule (feux tricolores de conformité, échéances, alertes critiques),
+même contrat API que `DirigeantShell.jsx`. Routing manuel par `useState`
+comme le web (pas de react-navigation).
 
 ## Prérequis
 
 - Python 3.11+
 - Node.js 18+
 - Une base PostgreSQL (Supabase) avec l'extension `pgvector`
-- Un corpus fiscal indexé (pipeline séparé, hors de ce repo) exposant un
-  fichier SQLite pointé par `CORPUS_DB_PATH`
+- Le corpus fiscal indexé : `corpus-pipeline/` (suivi par ce repo, pas un
+  pipeline externe) produit un fichier SQLite pointé par `CORPUS_DB_PATH`
 - Clés API Groq et/ou OpenRouter
 
 ## Installation
@@ -140,16 +168,13 @@ toutes les routes vers `index.html` (le routing est manuel par `useState`
 dans `App.jsx`, pas de react-router). Seule variable à poser côté Vercel :
 `VITE_API_URL` = l'URL du backend déployé.
 
-**Backend PAS sur Vercel.** Les fonctions serverless coupent à 60 s (300 s en
-Pro) et un audit dépasse 5 min en conditions réelles sur un dossier avec
-plusieurs dizaines d'écritures (voir le commentaire `AUDIT_TIMEOUT_MS` dans
-`frontend/src/App.jsx`). Cible : un service à process long type Render ou
+**Backend .**. Cible : un service à process long type Render ou
 Railway (FastAPI + uvicorn), sur le tier gratuit. Variables d'environnement
 identiques à la section Installation ci-dessus, plus `NISAB_ALLOWED_ORIGINS`
 pointé sur l'origine Vercel du frontend (plusieurs origines séparées par une
 virgule, espaces tolérés de part et d'autre).
 
-**Limite assumée, à annoncer telle quelle** : le connecteur Odoo
+**Limite assumée** : le connecteur Odoo
 (`odoo_connector.py`) est prévu pour joindre une instance sur le réseau du
 poste qui appelle l'API — en local ça inclut `http://localhost:8069`. Depuis
 un backend déployé sur Render/Railway, `localhost` désigne le conteneur du
@@ -176,20 +201,11 @@ devant le jury si la question est posée.
 
 ## Tests
 
-Aucune suite pytest/vitest pour l'instant. `backend/test_rag.py` est un
-script manuel pour interroger le vectorstore directement (pas un test
-automatisé).
+Aucune suite pytest/vitest — convention du projet : des scripts manuels
+`backend/test_*.py` (`python test_xxx.py`, exit code 0/1), pas de framework.
+Points d'entrée notables :
 
-## État du projet
-
-Phases 0-3 terminées : setup Alembic, schéma DB multitenant + RLS, auth JWT
-4 rôles, migration de l'état en mémoire vers des tables persistantes par
-dossier. Corpus fiscal : 401 articles validés, 0 conflit non résolu.
-
-En cours : constitution d'une base de test pour la soutenance (cas conformes
-et non conformes connus), consolidation de `ai_auditor.py` et
-`odoo_connector.py`.
-
-À venir (phases 4-9) : bilingue AR/FR (phase 7), workflow agentique ERP en
-mode proposition + validation humaine (jamais d'écriture comptable
-automatique).
+- `test_rls_isolation.py` — preuve automatisée de l'isolation multi-tenant (2 organisations, lecture ET écriture croisées).
+- `test_metriques_detection.py` / `test_metriques_hallucination.py` — précision/rappel de la détection, taux de citation/hallucination du chat, chiffrés.
+- `test_journal_acces.py`, `test_cle_metier.py`, `test_correction.py`, `test_push_odoo.py`, `test_veille.py`, `test_langue.py`, `test_ocr.py`, `test_regles_montant.py`, `test_detection_reglee.py`, `test_audit_lecture.py`, `test_circulaires.py`, `test_intention.py`, `test_qualification_bo.py`, `test_roi.py`.
+- `test_rag.py` — script manuel d'interrogation directe du vectorstore.
