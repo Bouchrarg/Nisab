@@ -599,3 +599,31 @@ class CitationSimulation(Base):
     article_reference: Mapped[str] = mapped_column(String(100), nullable=False)
     version_corpus: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class JournalAcces(Base):
+    """
+    Journal des accès aux données personnelles/comptables — exigence CNDP
+    (loi 09-08, cf. cahier-des-charges.md : "confidentialité et hébergement
+    conformes"). Table créée par la migration initiale (834f91da7e7e) mais
+    restée sans classe ORM jusqu'ici : le schéma existait, rien ne l'écrivait
+    ni ne le lisait.
+
+    `utilisateur_id` et `organisation_id` sont NULLABLE : une tentative
+    d'accès sans jeton valide (ou avant résolution du tenant) doit pouvoir
+    être journalisée quand même — voir app/journal_acces.py.
+
+    Volontairement SANS policy RLS, comme `utilisateur`/`organisation` (même
+    raison) : `organisation_id` nullable rendrait une policy RLS classique
+    inapplicable aux lignes pré-résolution de tenant, et seules les routes
+    déjà gated `admin_plateforme` (app/admin.py) la lisent — protection au
+    niveau applicatif, pas au niveau base.
+    """
+
+    __tablename__ = "journal_acces"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    utilisateur_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("utilisateur.id"), nullable=True)
+    organisation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("organisation.id"), nullable=True)
+    endpoint: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

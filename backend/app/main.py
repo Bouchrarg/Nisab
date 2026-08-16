@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.admin import router as admin_router
 from app.api import router as api_router
+from app.auth import decode_token
+from app.journal_acces import enregistrer_acces
 from app.routes_auth import router as auth_router
 from app.routes_corrections import router as corrections_router
 from app.routes_dossiers import router as dossiers_router
@@ -40,6 +42,38 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+
+#: Préfixes de routes touchant des données personnelles/comptables — exigence
+#: CNDP (cf. cahier-des-charges.md, loi 09-08). Volontairement PAS tout
+#: endpoint (santé, docs, auth) : journaliser un GET de polling frontend ou
+#: un OPTIONS CORS gonflerait l'écriture sans rien apporter à l'intention
+#: réelle du texte (tracer l'accès aux données comptables/fiscales d'un
+#: dossier), et alourdirait chaque requête d'un aller-retour DB de plus.
+_PREFIXES_JOURNALISES = ("/dossiers", "/admin", "/invitations")
+
+
+@app.middleware("http")
+async def journaliser_acces(request, call_next):
+    response = await call_next(request)
+
+    if request.url.path.startswith(_PREFIXES_JOURNALISES):
+        organisation_id = None
+        utilisateur_id = None
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.lower().startswith("bearer "):
+            try:
+                payload = decode_token(auth_header[7:], expected_type="access")
+                organisation_id = payload.organisation_id
+                utilisateur_id = payload.sub
+            except Exception:
+                # Jeton absent, expiré ou invalide : on journalise quand même
+                # la TENTATIVE d'accès (avec organisation/utilisateur à None),
+                # jamais bloquant — cf. journal_acces.py.
+                pass
+        enregistrer_acces(organisation_id, utilisateur_id, request.url.path)
+
+    return response
+
 
 app.include_router(auth_router)
 app.include_router(invitations_router)

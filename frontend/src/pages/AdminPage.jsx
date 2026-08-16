@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   RefreshCw, PlayCircle, Radio, CheckSquare, CheckCircle2, Trash2,
-  Database, Clock, ChevronLeft, ChevronRight, UploadCloud, FileText,
+  Database, Clock, ChevronLeft, ChevronRight, UploadCloud, FileText, History, X,
 } from 'lucide-react'
 import Badge from '../components/ui/Badge'
 import { apiFetch } from '../config/api'
@@ -27,6 +27,14 @@ export default function AdminPage() {
   const [dedupeResult, setDedupeResult] = useState(null)
   const [ingestRunning, setIngestRunning] = useState(false)
 
+  // Corpus par version (Lot D) — ventilation par document + diff entre
+  // versions CGI consécutives. Endpoint dédié (admin.py::corpus_versions),
+  // aucun changement de schéma : le corpus était déjà versionné, rien dans
+  // l'UI ne le montrait avant.
+  const [corpusVersions, setCorpusVersions] = useState([])
+  const [diffCgi, setDiffCgi] = useState([])
+  const [documentIdFilter, setDocumentIdFilter] = useState('')
+
   // Upload de note circulaire DGI (Lot 2.2) — voir admin.py::upload_circulaire.
   // Un seul article en base par circulaire (pas de découpage "Article N",
   // une circulaire n'a pas cette structure), rattaché explicitement aux
@@ -43,10 +51,11 @@ export default function AdminPage() {
   const fetchAll = useCallback(async () => {
     setLoadingStats(true)
     try {
-      const [sRes, srcRes, logRes] = await Promise.all([
+      const [sRes, srcRes, logRes, verRes] = await Promise.all([
         apiFetch(`/admin/corpus/stats`),
         apiFetch(`/admin/corpus/sources`),
         apiFetch(`/admin/pipeline/log`),
+        apiFetch(`/admin/corpus/versions`),
       ])
       if (sRes.ok) setStats(await sRes.json())
       if (srcRes.ok) {
@@ -57,6 +66,11 @@ export default function AdminPage() {
         const d = await logRes.json()
         setLog(d.log || [])
       }
+      if (verRes.ok) {
+        const d = await verRes.json()
+        setCorpusVersions(d.versions || [])
+        setDiffCgi(d.diff_cgi || [])
+      }
     } finally {
       setLoadingStats(false)
     }
@@ -66,10 +80,11 @@ export default function AdminPage() {
     fetchAll()
   }, [fetchAll])
 
-  const fetchArticles = useCallback(async (page = 1, statut = articleFilter) => {
+  const fetchArticles = useCallback(async (page = 1, statut = articleFilter, documentId = documentIdFilter) => {
     setLoadingArticles(true)
     try {
-      const res = await apiFetch(`/admin/articles?statut=${statut}&page=${page}&limit=30`)
+      const docParam = documentId ? `&document_id=${encodeURIComponent(documentId)}` : ''
+      const res = await apiFetch(`/admin/articles?statut=${statut}&page=${page}&limit=30${docParam}`)
       if (res.ok) {
         const d = await res.json()
         setArticles(d.articles || [])
@@ -81,11 +96,18 @@ export default function AdminPage() {
     } finally {
       setLoadingArticles(false)
     }
-  }, [articleFilter])
+  }, [articleFilter, documentIdFilter])
 
   useEffect(() => {
-    fetchArticles(1, articleFilter)
-  }, [articleFilter, fetchArticles])
+    fetchArticles(1, articleFilter, documentIdFilter)
+  }, [articleFilter, documentIdFilter, fetchArticles])
+
+  // Depuis la carte "Corpus par version" : filtrer la relecture sur UN
+  // document précis plutôt que sur tout le corpus.
+  const filtrerParDocument = (documentId) => {
+    setDocumentIdFilter(documentId)
+    setArticleFilter('valide')
+  }
 
   const openArticle = async (id) => {
     const res = await apiFetch(`/admin/articles/${id}`)
@@ -430,6 +452,16 @@ export default function AdminPage() {
           </div>
         </div>
         <div className="card-body">
+          {documentIdFilter && (
+            <div className="alert info" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12 }}>
+                Filtré sur le document <span className="mono">{documentIdFilter}</span>
+              </span>
+              <button className="btn btn-secondary btn-sm" onClick={() => setDocumentIdFilter('')}>
+                <X size={12} /> Retirer le filtre
+              </button>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             <button className="btn btn-primary btn-sm" onClick={validateSelected} disabled={!selectedIds.size}>
               <CheckSquare size={13} /> Valider la sélection ({selectedIds.size})
@@ -531,6 +563,73 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+
+      {corpusVersions.length > 0 && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="card-header">
+            <span className="card-title">Corpus par version</span>
+            <Badge cls="neutral" dot>{corpusVersions.length} document(s)</Badge>
+          </div>
+          <div className="card-body">
+            <p style={{ fontSize: 12.5, color: 'var(--ardoise)', lineHeight: 1.6, marginBottom: 14 }}>
+              Le corpus n'est pas un dump figé : le CGI existe en plusieurs millésimes distincts, chacun avec sa
+              propre date de version. C'est ce qui permet à la veille de détecter qu'un article a changé d'une
+              année sur l'autre — la distinction CGI (texte consolidé) / BO (déclencheur de veille) est une
+              règle d'architecture du projet.
+            </p>
+            <div style={{ overflowX: 'auto', marginBottom: diffCgi.length ? 20 : 0 }}>
+              <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--bordure)', textAlign: 'left' }}>
+                    {['Document', 'Type', 'Version', 'Articles', ''].map((h) => (
+                      <th key={h} style={{ padding: '6px 8px', fontWeight: 500, color: 'var(--sourdine)', fontSize: 11 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {corpusVersions.map((v) => (
+                    <tr key={v.document_id} style={{ borderBottom: '1px solid var(--bordure)' }}>
+                      <td style={{ padding: '6px 8px', fontWeight: 500, color: 'var(--encre)' }}>{v.label}</td>
+                      <td style={{ padding: '6px 8px' }}>
+                        <Badge cls={v.type === 'CGI' ? 'seuil' : 'neutral'}>{v.type}</Badge>
+                      </td>
+                      <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ardoise)' }}>{v.date_version || '—'}</td>
+                      <td style={{ padding: '6px 8px', color: 'var(--ardoise)' }}>{v.nb_valides} / {v.nb_articles} validé(s)</td>
+                      <td style={{ padding: '6px 8px' }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => filtrerParDocument(v.document_id)}>
+                          Voir les articles
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {diffCgi.map((d) => (
+              <div key={d.vers_id} style={{ background: 'var(--toile)', border: '1px solid var(--bordure)', borderRadius: 6, padding: 14, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <History size={13} style={{ color: 'var(--seuil)' }} />
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--encre)' }}>
+                    {d.de_label} → {d.vers_label}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 12, color: 'var(--ardoise)' }}>
+                  <span><strong style={{ color: 'var(--conforme)' }}>{d.nouveaux.length}</strong> nouveau(x)</span>
+                  <span><strong style={{ color: 'var(--critique)' }}>{d.disparus.length}</strong> disparu(s)</span>
+                  <span><strong>{d.modifies.length}</strong> modifié(s) sur {d.nb_communs} article(s) commun(s)</span>
+                </div>
+                {(d.nouveaux.length > 0 || d.disparus.length > 0) && (
+                  <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--sourdine)' }}>
+                    {d.nouveaux.length > 0 && <div>Nouveaux : <span className="mono">{d.nouveaux.join(', ')}</span></div>}
+                    {d.disparus.length > 0 && <div>Disparus : <span className="mono">{d.disparus.join(', ')}</span></div>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {log.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>

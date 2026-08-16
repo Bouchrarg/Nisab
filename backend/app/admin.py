@@ -24,6 +24,7 @@ from app.models import (
     Dossier,
     Echeance,
     Invitation,
+    JournalAcces,
     Organisation,
     RoleUtilisateur,
     SimulationControle,
@@ -444,6 +445,79 @@ def corpus_stats():
         }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/corpus/versions")
+def corpus_versions():
+    """
+    Ventilation du corpus par document/version + diff entre versions CGI
+    consécutives.
+
+    Démontre que la veille repose sur un corpus réellement daté (CGI 2024,
+    2025, 2026, chacun une ligne `documents` distincte) plutôt que sur un
+    dump figé — argument direct de la séparation CGI/BO documentée comme
+    règle d'architecture (CLAUDE.md : "CGI = texte légal consolidé, BO =
+    provenance temporelle + déclencheur de veille").
+
+    Aucun changement de schéma : lecture pure sur `documents`/`articles`,
+    déjà peuplées par le pipeline (corpus-pipeline/). Le diff ne compare que
+    les articles `statut='valide'` — un article encore en relecture n'a pas
+    vocation à apparaître dans un comparatif présenté comme fiable.
+    """
+    db_path = _corpus_db_path()
+    if not os.path.exists(db_path):
+        return {"status": "no_db", "versions": [], "diff_cgi": []}
+
+    conn = _db_connect()
+    try:
+        rows = conn.execute(
+            """
+            SELECT a.document_id, d.label, d.type, d.statut AS document_statut, d.date_version,
+                   COUNT(*) AS nb_articles,
+                   SUM(CASE WHEN a.statut = 'valide' THEN 1 ELSE 0 END) AS nb_valides
+            FROM articles a
+            JOIN documents d ON d.id = a.document_id
+            GROUP BY a.document_id, d.label, d.type, d.statut, d.date_version
+            ORDER BY d.type, d.date_version
+            """
+        ).fetchall()
+        versions = [dict(r) for r in rows]
+
+        # Diff entre versions CGI consécutives, ordonnées par date_version
+        # (cgi_2024 -> cgi_2025 -> cgi_2026 aujourd'hui, mais pas supposé fixe).
+        cgi_docs = conn.execute(
+            "SELECT id, label, date_version FROM documents WHERE type = 'CGI' ORDER BY date_version"
+        ).fetchall()
+
+        diff_cgi = []
+        for prev, curr in zip(cgi_docs, cgi_docs[1:]):
+            prev_articles = {
+                r["reference"]: r["texte"] for r in conn.execute(
+                    "SELECT reference, texte FROM articles WHERE document_id = ? AND statut = 'valide'",
+                    (prev["id"],),
+                )
+            }
+            curr_articles = {
+                r["reference"]: r["texte"] for r in conn.execute(
+                    "SELECT reference, texte FROM articles WHERE document_id = ? AND statut = 'valide'",
+                    (curr["id"],),
+                )
+            }
+            nouveaux = sorted(set(curr_articles) - set(prev_articles))
+            disparus = sorted(set(prev_articles) - set(curr_articles))
+            communs = set(curr_articles) & set(prev_articles)
+            modifies = sorted(ref for ref in communs if curr_articles[ref] != prev_articles[ref])
+
+            diff_cgi.append({
+                "de_id": prev["id"], "de_label": prev["label"],
+                "vers_id": curr["id"], "vers_label": curr["label"],
+                "nouveaux": nouveaux, "disparus": disparus,
+                "nb_communs": len(communs), "modifies": modifies,
+            })
+
+        return {"status": "ok", "versions": versions, "diff_cgi": diff_cgi}
+    finally:
+        conn.close()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1026,6 +1100,60 @@ def list_platform_users(
 
     pages = max(1, (total + limit - 1) // limit)
     return {"users": users, "total": total, "page": page, "pages": pages}
+
+
+@router.get("/journal-acces")
+def list_journal_acces(
+    organisation_id: Optional[str] = None,
+    utilisateur_id: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_admin_db),
+):
+    """
+    Journal des accès aux données personnelles/comptables (exigence CNDP,
+    cf. app/journal_acces.py). Lecture seule, gated admin_plateforme (comme
+    tout ce routeur) — aucun cabinet ne doit pouvoir consulter le journal
+    d'un autre, ni même le sien : ce n'est pas une fonctionnalité produit,
+    c'est une obligation de traçabilité côté plateforme.
+    """
+    filters = []
+    if organisation_id:
+        filters.append(JournalAcces.organisation_id == organisation_id)
+    if utilisateur_id:
+        filters.append(JournalAcces.utilisateur_id == utilisateur_id)
+
+    count_stmt = select(func.count()).select_from(JournalAcces)
+    for f in filters:
+        count_stmt = count_stmt.where(f)
+    total = db.scalar(count_stmt) or 0
+
+    stmt = (
+        select(JournalAcces, Utilisateur.email, Organisation.nom)
+        .outerjoin(Utilisateur, Utilisateur.id == JournalAcces.utilisateur_id)
+        .outerjoin(Organisation, Organisation.id == JournalAcces.organisation_id)
+        .order_by(JournalAcces.created_at.desc())
+    )
+    for f in filters:
+        stmt = stmt.where(f)
+    stmt = stmt.limit(limit).offset((page - 1) * limit)
+    rows = db.execute(stmt).all()
+
+    entries = [
+        {
+            "id": str(j.id),
+            "endpoint": j.endpoint,
+            "utilisateur_id": str(j.utilisateur_id) if j.utilisateur_id else None,
+            "utilisateur_email": email,
+            "organisation_id": str(j.organisation_id) if j.organisation_id else None,
+            "organisation_nom": org_nom,
+            "created_at": j.created_at.isoformat() if j.created_at else None,
+        }
+        for j, email, org_nom in rows
+    ]
+
+    pages = max(1, (total + limit - 1) // limit)
+    return {"entries": entries, "total": total, "page": page, "pages": pages}
 
 
 class UserStatusRequest(BaseModel):
