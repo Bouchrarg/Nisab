@@ -13,6 +13,7 @@ import psycopg
 from pgvector.psycopg import register_vector
 
 from app.embeddings import embed_query
+from app.metrics import mesurer
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -84,23 +85,25 @@ class PgVectorStore(VectorStore):
         accompagnée d'un article CGI dans le même lot de résultats (filtre
         appliqué côté rag_retrieval.py, pas ici).
         """
-        q_emb = embed_query(query)
+        with mesurer("embedding"):
+            q_emb = embed_query(query)
         with self._conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT a.id, a.reference, a.source_label, a.document_id, a.texte,
-                       1 - (a.embedding <=> %s) AS score, d.type, a.articles_cgi_commentes
-                FROM articles a
-                LEFT JOIN documents d ON d.id = a.document_id
-                WHERE a.statut = 'valide' AND a.embedding IS NOT NULL
-                  AND (%s::text IS NULL OR a.document_id = %s)
-                  AND (%s::text[] IS NULL OR d.type IS NULL OR NOT (d.type = ANY(%s)))
-                ORDER BY a.embedding <=> %s
-                LIMIT %s
-                """,
-                (q_emb, document_id, document_id, exclude_types, exclude_types, q_emb, top_k),
-            )
-            rows = cur.fetchall()
+            with mesurer("retrieval_sql"):
+                cur.execute(
+                    """
+                    SELECT a.id, a.reference, a.source_label, a.document_id, a.texte,
+                           1 - (a.embedding <=> %s) AS score, d.type, a.articles_cgi_commentes
+                    FROM articles a
+                    LEFT JOIN documents d ON d.id = a.document_id
+                    WHERE a.statut = 'valide' AND a.embedding IS NOT NULL
+                      AND (%s::text IS NULL OR a.document_id = %s)
+                      AND (%s::text[] IS NULL OR d.type IS NULL OR NOT (d.type = ANY(%s)))
+                    ORDER BY a.embedding <=> %s
+                    LIMIT %s
+                    """,
+                    (q_emb, document_id, document_id, exclude_types, exclude_types, q_emb, top_k),
+                )
+                rows = cur.fetchall()
 
         return [
             ArticleMatch(

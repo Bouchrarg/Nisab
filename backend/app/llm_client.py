@@ -27,6 +27,8 @@ import time
 
 from dotenv import load_dotenv
 
+from app.metrics import mesurer
+
 load_dotenv()
 
 # ── Groq ──────────────────────────────────────────────────────────────
@@ -109,7 +111,8 @@ def _call_provider(
 
     for attempt in range(retries):
         try:
-            response = client.chat.completions.create(**kwargs)
+            with mesurer("llm", label):
+                response = client.chat.completions.create(**kwargs)
             return response.choices[0].message.content or ""
         except Exception as exc:
             err_msg = str(exc)

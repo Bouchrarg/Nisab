@@ -6,6 +6,7 @@ import re
 import threading
 import time
 from app.llm_client import llm_call_json, GROQ_MODEL_FAST
+from app.metrics import mesurer
 from app.regles_montant import (
     REFERENCES_AVEC_REGLE,
     CategorieMontant,
@@ -643,7 +644,7 @@ def run_ai_rag_audit(
     Ni l'une ni l'autre ne doit être confondue avec des écritures jugées
     conformes.
     """
-    with _audit_lock:
+    with _audit_lock, mesurer("audit_total"):
         return _run_ai_rag_audit_locked(odoo_data, top_k_legal, document_id)
 
 
