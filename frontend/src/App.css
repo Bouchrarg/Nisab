@@ -11,37 +11,28 @@
   background: var(--toile);
 }
 
-/* ═══ SIDEBAR ════════════════════════════════════════════════════════ */
+/* ═══ SIDEBAR — Direction D : coquille claire, plus la coquille sombre
+   d'origine. La réglette verticale sur l'item actif est UNE des deux seules
+   réglettes de couleur décorative gardées dans tout le design (l'autre :
+   l'item sélectionné en Corrections) — partout ailleurs, "ça fait IA" et
+   c'est banni. ═══════════════════════════════════════════════════════ */
 .sidebar {
-  width: 212px;
+  width: 232px;
   flex-shrink: 0;
-  background: var(--encre);
+  background: var(--surface-2);
+  color: var(--encre);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  border-right: 2px solid var(--encre);
 }
 
 .sidebar-brand {
-  padding: 20px 16px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  padding: 24px 20px 6px;
+  display: block;
 }
 
 .brand-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--seuil);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-  flex-shrink: 0;
-  letter-spacing: -0.5px;
+  display: none;
 }
 
 .brand-text {
@@ -50,35 +41,38 @@
 }
 
 .brand-name {
-  font-size: 14px;
+  font-family: var(--font-display);
+  font-size: 21px;
   font-weight: 600;
-  color: #fff;
+  color: var(--encre);
   letter-spacing: -0.01em;
 }
 
 .brand-sub {
-  font-size: 10px;
-  color: rgba(255,255,255,0.35);
+  font-size: 11px;
+  color: var(--sourdine);
   letter-spacing: 0.02em;
-  margin-top: 1px;
+  margin-top: 2px;
+  margin-bottom: 14px;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 12px 8px;
+  padding: 0 20px 10px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .nav-section {
-  padding: 12px 8px 4px;
+  padding: 16px 0 7px;
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.25);
+  color: var(--sourdine);
 }
 
 .nav-item {
@@ -86,33 +80,37 @@
   align-items: center;
   gap: 9px;
   padding: 8px 10px;
-  border-radius: var(--radius-md);
+  border-left: 3px solid transparent;
+  border-radius: 0;
   cursor: pointer;
-  color: rgba(255,255,255,0.55);
+  color: var(--ardoise);
   font-size: 13px;
   font-weight: 500;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
   user-select: none;
 }
 
 .nav-item:hover {
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.85);
+  color: var(--encre);
 }
 
 .nav-item.active {
-  background: var(--seuil);
-  color: #fff;
+  border-left-width: 4px;
+  border-left-color: var(--seuil);
+  background: var(--surface);
+  color: var(--encre);
+  font-weight: 700;
 }
 
 .nav-item svg {
   flex-shrink: 0;
-  opacity: 0.9;
+  color: var(--ardoise);
 }
+.nav-item.active svg { color: var(--seuil); }
 
 .sidebar-footer {
-  padding: 12px 16px;
-  border-top: 1px solid rgba(255,255,255,0.07);
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--bordure);
 }
 
 .sync-status {
@@ -120,7 +118,7 @@
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: rgba(255,255,255,0.30);
+  color: var(--sourdine);
   font-family: var(--font-mono);
 }
 
@@ -147,15 +145,24 @@
   min-width: 0;
 }
 
+/* .topbar est hors de la zone de scroll (.page a le seul overflow-y du
+   shell, cf. .main-content{overflow:hidden} ci-dessus) : rien ne peut
+   défiler dessous structurellement. La version précédente n'avait ni
+   bordure ni contraste de fond avec .page (les deux en --toile) — sans
+   frontière visuelle, un utilisateur qui scrolle a l'IMPRESSION que le
+   contenu disparaît sous l'en-tête même si rien n'est réellement masqué.
+   Fond --surface + filet + z-index tranchent net cette ambiguïté. */
 .topbar {
-  height: 52px;
+  height: auto;
   flex-shrink: 0;
+  position: relative;
+  z-index: 20;
   background: var(--surface);
   border-bottom: 1px solid var(--bordure);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 20px 40px;
 }
 
 .topbar-left {
@@ -165,11 +172,12 @@
 }
 
 .topbar-title {
-  font-size: 15px;
+  font-family: var(--font-display);
+  font-size: 21px;
   font-weight: 600;
   color: var(--encre);
-  padding-right: 16px;
-  border-right: 1px solid var(--bordure);
+  padding-right: 0;
+  border-right: none;
 }
 
 .topbar-actions {
@@ -181,7 +189,7 @@
 .page {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 24px 40px 60px;
 }
 
 /* ═══ CARDS ══════════════════════════════════════════════════════════ */
@@ -201,7 +209,8 @@
 }
 
 .card-title {
-  font-size: 13px;
+  font-family: var(--font-display);
+  font-size: 15px;
   font-weight: 600;
   color: var(--encre);
 }
@@ -210,36 +219,90 @@
   padding: 16px 20px;
 }
 
-/* ═══ KPI CARDS ══════════════════════════════════════════════════════ */
+/* ═══ SYNTHÈSE DU CABINET ════════════════════════════════════════════
+   Carte neutre (pas de filet ni de fond coloré — le jugement est déjà dans
+   les mots, la couleur n'a rien à ajouter ici) : étiquette, phrase de
+   synthèse, méta discrète. Largeur du titre bridée pour rester lisible
+   comme du texte, pas comme une bannière pleine largeur. */
+.cabinet-hero {
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-card);
+  padding: 16px 20px;
+  margin-bottom: 18px;
+}
+.cabinet-hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sourdine);
+  margin-bottom: 6px;
+}
+.cabinet-hero-headline {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--encre);
+  max-width: 620px;
+}
+.cabinet-hero-meta {
+  font-size: 11.5px;
+  color: var(--sourdine);
+  margin-top: 8px;
+}
+
+/* ═══ KPI CARDS — Direction D : bande à filets, pas des cartes flottantes.
+   Motif validé le 17/08 dans l'artifact (4 directions comparées) — même
+   traitement que la première tentative d'août, cette fois avec un vrai
+   rendu validé plutôt qu'implémenté à l'aveugle. Le repère visuel du
+   statut, c'est le carré .badge-dot / la couleur du chiffre — pas une
+   ombre ni une carte séparée. ═══════════════════════════════════════ */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
+  /* auto-fit (pas auto-fill) : auto-fill réserve une piste de grille pour
+     CHAQUE colonne qui tiendrait dans la largeur, même sans contenu à mettre
+     dedans — avec 4 tuiles sur un écran large, ça laissait une 5e colonne
+     vide, bordée, visible. auto-fit réduit les pistes vides à 0 et étale
+     les 4 tuiles réelles sur toute la largeur. */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0;
+  border: 1px solid var(--bordure);
+  margin-bottom: 24px;
 }
 
 .kpi-card {
   background: var(--surface);
-  border: 1px solid var(--bordure);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  padding: 16px 18px;
+  border: none;
+  border-right: 1px solid var(--bordure);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 18px 20px;
+  transition: background-color 0.12s;
 }
+.kpi-card:last-child { border-right: none; }
+.kpi-card:hover { background: var(--surface-2); }
 
 .kpi-label {
-  font-size: 11px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--sourdine);
-  margin-bottom: 6px;
-  font-weight: 500;
+  margin-bottom: 8px;
 }
 
 .kpi-value {
-  font-family: var(--font-mono);
-  font-size: 26px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 27px;
+  font-weight: 700;
   line-height: 1;
   color: var(--encre);
 }
+
+.kpi-value.mono { font-family: var(--font-mono); font-size: 21px; }
 
 .kpi-value.critique { color: var(--critique); }
 .kpi-value.vigilance { color: var(--vigilance); }
@@ -247,9 +310,10 @@
 .kpi-value.seuil { color: var(--seuil); }
 
 .kpi-sub {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--sourdine);
-  margin-top: 4px;
+  opacity: 0.85;
+  margin-top: 6px;
 }
 
 /* ═══ JAUGE-SEUIL (composant signature) ══════════════════════════════ */
@@ -359,29 +423,42 @@
   margin-top: 1px;
 }
 
-/* ═══ BADGES ═════════════════════════════════════════════════════════ */
+/* ═══ BADGES — Direction D : carré plein + libellé texte, jamais une
+   pilule colorée ("ça fait IA", motif explicitement écarté). Le texte
+   reste toujours de l'encre neutre ; seul le carré .badge-dot porte la
+   couleur du statut, via le sélecteur descendant .badge.<cls> ci-dessous
+   — pas currentColor, pour ne jamais laisser le texte se teinter. ═════ */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 9px;
-  border-radius: var(--radius-full);
+  gap: 8px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.6;
+  color: var(--encre);
 }
 
 .badge-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 0;
+  flex-shrink: 0;
+  background: var(--sourdine); /* défaut neutre, écrasé ci-dessous par statut */
 }
 
-.badge.conforme { background: var(--conforme-soft); color: var(--conforme); }
-.badge.vigilance { background: var(--vigilance-soft); color: var(--vigilance); }
-.badge.critique  { background: var(--critique-soft);  color: var(--critique); }
-.badge.seuil     { background: var(--seuil-soft);     color: var(--seuil); }
-.badge.neutral   { background: var(--toile);           color: var(--ardoise); border: 1px solid var(--bordure); }
+.badge.conforme .badge-dot  { background: var(--conforme); }
+.badge.vigilance .badge-dot { background: var(--vigilance); }
+.badge.critique .badge-dot  { background: var(--critique); }
+.badge.seuil .badge-dot     { background: var(--seuil); }
+.badge.neutral .badge-dot   { background: var(--sourdine); }
+
+/* Variante secondaire : la ligne a déjà une info principale (titre, date),
+   le badge n'est qu'une précision de catégorie. */
+.badge-sm { font-size: 10px; font-weight: 500; gap: 6px; color: var(--ardoise); }
+.badge-sm .badge-dot { width: 7px; height: 7px; }
 
 /* ═══ FINDINGS / ANOMALIES ═══════════════════════════════════════════ */
 .findings-list {
@@ -959,12 +1036,12 @@
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   padding: 8px 16px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   font-family: var(--font-sans);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.12s, box-shadow 0.12s, opacity 0.12s;
   border: none;
@@ -974,11 +1051,11 @@
 
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.btn-primary { background: var(--seuil); color: #fff; }
+.btn-primary { background: var(--seuil); color: var(--accent-ink); }
 .btn-primary:hover:not(:disabled) { background: var(--seuil-dark); }
 
-.btn-secondary { background: var(--surface); color: var(--encre); border: 1px solid var(--bordure); }
-.btn-secondary:hover:not(:disabled) { background: var(--toile); }
+.btn-secondary { background: var(--surface-2); color: var(--encre); border: 1px solid var(--ardoise); }
+.btn-secondary:hover:not(:disabled) { background: var(--encre); color: var(--toile); }
 
 .btn-ghost { background: transparent; color: var(--ardoise); }
 .btn-ghost:hover:not(:disabled) { background: var(--toile); }
@@ -1073,11 +1150,12 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .section-title {
-  font-size: 15px;
+  font-family: var(--font-display);
+  font-size: 20px;
   font-weight: 600;
   color: var(--encre);
 }
@@ -1278,8 +1356,8 @@
 .notif-item:hover { background: var(--toile); }
 
 .notif-item-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
+  width: 9px; height: 9px;
+  border-radius: 0;
   flex-shrink: 0;
   margin-top: 4px;
 }
@@ -1299,9 +1377,57 @@
   font-family: var(--font-mono);
 }
 
+/* ═══ LISTES DE WIDGET (échéances) ═══════════════════════════════════ */
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--bordure);
+}
+.list-row:last-child { border-bottom: none; }
+
+/* La date est ce qu'on scanne en premier dans une liste d'échéances — un
+   repère net (fond + bordure), pas juste un chiffre nu dans le flux. */
+.list-date {
+  flex-shrink: 0;
+  min-width: 38px;
+  text-align: center;
+  padding: 4px 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-sm);
+}
+.list-date-day {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--encre);
+  line-height: 1.1;
+}
+.list-date-month {
+  font-size: 9px;
+  color: var(--sourdine);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.list-body { flex: 1; min-width: 0; }
+.list-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--encre);
+  line-height: 1.3;
+}
+.list-sub {
+  font-size: 11px;
+  color: var(--sourdine);
+  margin-top: 1px;
+}
+
 /* ═══ LEGAL NEWS FEED ════════════════════════════════════════════════ */
 .law-feed-item {
-  padding: 12px 16px;
+  padding: 12px 18px;
 }
 
 /* ═══ GLOBAL COPILOT DRAWER ══════════════════════════════════════════ */
@@ -1800,46 +1926,117 @@
 /* ── Correctif : vue d'ensemble cabinet (cartes dossiers) ────────────── */
 .dossier-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 14px;
 }
 .overview-widgets-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 20px;
+  gap: 22px;
   align-items: start;
 }
+
+/* Cartes-listes (échéances, veille) : conteneurs passifs qu'on ne clique
+   pas — radius 0, en-tête à filet plutôt qu'une carte flottante de plus. */
+.card.widget { border-radius: 0; padding: 0; overflow: hidden; }
+.card.widget .card-header { padding: 14px 18px; }
+
+/* Bloc ROI : identité portée par un simple filet supérieur en accent, pas
+   un aplat de couleur — "premium éditorial", pas "carte colorée". Toutes
+   les données restent affichées (vraie différenciation produit / valeur
+   soutenance) mais compactées : moins d'emprise à l'écran, pas moins
+   d'information. */
+.roi-card { border-top: 2px solid var(--seuil); margin-bottom: 20px; }
+
+/* Grille (pas flex-wrap) : auto-fit avec un minimum assez bas pour que 3
+   ou 4 métriques tiennent TOUJOURS sur une seule ligne desktop — plus de
+   4e métrique isolée sur sa propre ligne. Le padding vit ICI, pas sur un
+   .card-body : .roi-grid n'est pas enveloppé dans un .card-body en JSX,
+   donc l'ancien padding posé sur .roi-card .card-body ne s'appliquait
+   jamais — les chiffres touchaient les bords de la carte. */
+.roi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 18px;
+  padding: 14px 20px 16px;
+}
+/* La méthodologie (hypothèses, base de calcul) vit dans le title (infobulle
+   native au survol), pas en texte permanent — cursor:help signale que le
+   libellé porte plus d'info sans l'imposer à la lecture. */
+.roi-item-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sourdine);
+  margin-bottom: 5px;
+  cursor: help;
+}
+.roi-item-value {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--encre);
+  line-height: 1.1;
+}
+.roi-item-value .unit { font-size: 12px; font-weight: 500; color: var(--sourdine); }
+.roi-item-value.critique  { color: var(--critique); }
+.roi-item-value.conforme  { color: var(--conforme); }
+.roi-item-value.vigilance { color: var(--vigilance); }
+/* Tag court (1-2 mots) : "mesuré"/"estimé"/portée — la méthodologie
+   complète (hypothèses, base de calcul) reste dans le title (infobulle). */
+.roi-item-tag {
+  font-size: 10px;
+  color: var(--sourdine);
+  opacity: 0.8;
+  margin-top: 4px;
+}
+/* Direction D : le dossier est une entité qu'on manipule (on clique dedans)
+   — elle garde une ombre discrète en permanence, contrairement aux
+   conteneurs passifs (bande KPI, cartes échéances/veille) qui restent plats.
+   Surface CLAIRE UNIFORME pour toutes les cartes, quel que soit le statut —
+   le statut passe uniquement par le petit indicateur carré du Badge, jamais
+   par un aplat de couleur sur toute la carte. */
 .dossier-card {
-  background: #fff;
-  border: 1px solid var(--bordure, #e5e7eb);
-  border-radius: 10px;
-  padding: 16px;
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-entity);
+  padding: 14px 16px;
   cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: box-shadow 0.15s, border-color 0.15s, background-color 0.15s, transform 0.15s;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 .dossier-card:hover {
-  border-color: var(--seuil, #2563eb);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-color: var(--ardoise);
+  background: var(--surface-2);
+  transform: translateY(-1px);
 }
 .dossier-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dossier-card-name { font-weight: 600; font-size: 14px; }
-.dossier-card-sector { font-size: 12px; color: var(--ardoise, #667); }
+.dossier-card-meta { font-size: 11.5px; color: var(--ardoise); }
+/* Lien permanent (même onClick que la carte, pas un second élément
+   interactif) — poussé en bas via margin-top:auto pour que toutes les
+   cartes d'une même rangée l'alignent, quelle que soit la longueur du nom
+   ou la présence d'un secteur. */
 .dossier-card-open {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--seuil, #2563eb);
+  margin-top: auto;
+  padding-top: 4px;
   display: flex;
   align-items: center;
   gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--seuil);
 }
 .dossier-create-card {
-  background: #fff;
-  border: 1px solid var(--bordure, #e5e7eb);
-  border-radius: 10px;
-  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
   margin-bottom: 16px;
   display: flex;
   gap: 12px;
@@ -1857,9 +2054,12 @@
 }
 .dossier-create-card input {
   padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--bordure, #ddd);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bordure);
   font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--encre);
+  background: var(--surface);
 }
 .dossier-create-actions { display: flex; gap: 8px; }
 

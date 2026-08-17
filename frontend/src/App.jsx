@@ -74,6 +74,11 @@ async function fetchAuditRun(query = '') {
 function AppShell() {
   const [view, setView] = useState(() => localStorage.getItem('nisab_view') || 'overview')
   const [backendStatus, setBackendStatus] = useState('loading')
+  // Alertes critiques cabinet — calculées par CabinetOverviewPage (seule à
+  // charger le résumé de chaque dossier) et remontées ici pour que la
+  // cloche de notifications, elle, vive dans le Topbar (persistant, visible
+  // quelle que soit la vue), pas enterrée dans le contenu d'une page.
+  const [criticalAlerts, setCriticalAlerts] = useState([])
   const [summary, setSummary] = useState(null)
   const [findings, setFindings] = useState([])
   // Propositions de correction, indexees par alerte_id : FindingCard doit
@@ -421,10 +426,17 @@ function AppShell() {
       <Sidebar view={view} onChangeView={changeView} backendStatus={backendStatus} role={user?.role} />
 
       <div className="main-content">
-        <Topbar view={view} onOpenProfile={() => changeView('profile')} />
+        <Topbar
+          view={view}
+          onOpenProfile={() => changeView('profile')}
+          criticalAlerts={criticalAlerts}
+          onOpenDossier={openDossier}
+        />
 
         <div className="page">
-          {view === 'overview' && <CabinetOverviewPage onOpenDossier={openDossier} />}
+          {view === 'overview' && (
+            <CabinetOverviewPage onOpenDossier={openDossier} onCriticalAlertsChange={setCriticalAlerts} />
+          )}
           {view === 'profile' && <ProfilePage />}
           {view === 'invitations' && user?.role === 'admin_cabinet' && <InvitationsPage />}
 
