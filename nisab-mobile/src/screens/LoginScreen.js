@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '../context/AuthContext'
-import { colors, radius, spacing } from '../theme'
+import { colors, fonts, radius, spacing } from '../theme'
 
 export default function LoginScreen() {
   const { login } = useAuth()
@@ -39,9 +39,9 @@ export default function LoginScreen() {
         style={styles.center}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>N</Text>
-        </View>
+        {/* Direction D : plus de pictogramme de marque, seulement le mot
+            "Nisab" en Source Serif 4 — même choix que Sidebar.jsx côté web
+            (.brand-mark { display:none }), cf. App.js. */}
         <Text style={styles.title}>Nisab</Text>
         <Text style={styles.subtitle}>Espace dirigeant</Text>
 
@@ -73,7 +73,7 @@ export default function LoginScreen() {
             disabled={submitting}
           >
             {submitting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.accentInk} />
             ) : (
               <Text style={styles.buttonText}>Se connecter</Text>
             )}
@@ -87,24 +87,19 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.toile },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.xl },
-  logo: {
-    width: 48, height: 48, borderRadius: radius.md, backgroundColor: colors.seuil,
-    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
-  },
-  logoText: { color: '#fff', fontWeight: '700', fontSize: 22 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.encre },
-  subtitle: { fontSize: 13, color: colors.sourdine, marginBottom: spacing.xxl },
+  title: { fontFamily: fonts.displayBold, fontSize: 32, color: colors.encre, letterSpacing: -0.4 },
+  subtitle: { fontFamily: fonts.sans, fontSize: 13, color: colors.sourdine, marginTop: 4, marginBottom: spacing.xxl },
   form: { width: '100%', gap: spacing.md },
   input: {
     backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.bordure,
     borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md,
-    fontSize: 14, color: colors.encre,
+    fontFamily: fonts.sans, fontSize: 14, color: colors.encre,
   },
-  error: { color: colors.critique, fontSize: 12.5 },
+  error: { fontFamily: fonts.sans, color: colors.critique, fontSize: 12.5 },
   button: {
     backgroundColor: colors.seuil, borderRadius: radius.md, paddingVertical: spacing.md,
     alignItems: 'center', marginTop: spacing.xs,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  buttonText: { fontFamily: fonts.sansSemiBold, color: colors.accentInk, fontSize: 14 },
 })

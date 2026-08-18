@@ -3,7 +3,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import Badge from '../components/Badge'
 import { apiFetch } from '../config/api'
 import { useDossier } from '../context/DossierContext'
-import { colors, feuColors, radius, spacing } from '../theme'
+import { colors, feuColors, fonts, radius, spacing } from '../theme'
 
 // Port direct de feuTricolore() dans frontend/src/pages/DirigeantShell.jsx:23-29
 // — même 4 états, même raison d'être : "gris" (indéterminé : pas de donnée,
@@ -122,20 +122,20 @@ export default function FeuxScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.toile },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  title: { fontSize: 19, fontWeight: '700', color: colors.encre },
-  subtitle: { fontSize: 13, color: colors.sourdine, marginTop: 2, marginBottom: spacing.lg },
-  muted: { fontSize: 12.5, color: colors.sourdine },
+  title: { fontFamily: fonts.display, fontSize: 20, color: colors.encre },
+  subtitle: { fontFamily: fonts.sans, fontSize: 13, color: colors.sourdine, marginTop: 2, marginBottom: spacing.lg },
+  muted: { fontFamily: fonts.sans, fontSize: 12.5, color: colors.sourdine },
   empty: { backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.bordure, padding: spacing.xl, gap: spacing.xs },
-  emptyTitle: { fontSize: 14, fontWeight: '600', color: colors.encre },
+  emptyTitle: { fontFamily: fonts.sansSemiBold, fontSize: 14, color: colors.encre },
   card: {
     backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.bordure,
     padding: spacing.lg, marginBottom: spacing.md,
   },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.md },
-  dossierName: { fontSize: 15, fontWeight: '700', color: colors.encre },
-  dossierSector: { fontSize: 11.5, color: colors.sourdine, marginTop: 2 },
-  summary: { fontSize: 13, color: colors.ardoise, lineHeight: 20 },
+  dossierName: { fontFamily: fonts.display, fontSize: 16, color: colors.encre },
+  dossierSector: { fontFamily: fonts.sans, fontSize: 11.5, color: colors.sourdine, marginTop: 2 },
+  summary: { fontFamily: fonts.sans, fontSize: 13, color: colors.ardoise, lineHeight: 20 },
   nextEcheance: { borderTopWidth: 1, borderTopColor: colors.bordureDiscrete, marginTop: spacing.md, paddingTop: spacing.sm },
-  nextEcheanceLabel: { fontSize: 10.5, color: colors.sourdine, textTransform: 'uppercase' },
-  nextEcheanceValue: { fontSize: 12.5, color: colors.ardoise, marginTop: 2 },
+  nextEcheanceLabel: { fontFamily: fonts.monoSemiBold, fontSize: 10, color: colors.sourdine, textTransform: 'uppercase', letterSpacing: 0.8 },
+  nextEcheanceValue: { fontFamily: fonts.sans, fontSize: 12.5, color: colors.ardoise, marginTop: 2 },
 })

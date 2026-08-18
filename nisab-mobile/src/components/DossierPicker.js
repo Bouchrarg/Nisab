@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native'
 import { useDossier } from '../context/DossierContext'
-import { colors, radius, spacing } from '../theme'
+import { colors, fonts, spacing } from '../theme'
 
 /**
  * Sélecteur de dossier — nécessaire uniquement pour les écrans Échéances et
@@ -41,11 +41,14 @@ export default function DossierPicker() {
 const styles = StyleSheet.create({
   row: { flexGrow: 0, marginBottom: spacing.md },
   rowContent: { gap: spacing.sm, paddingHorizontal: spacing.lg },
+  // Carré, pas pilule — même choix que .filter-chip côté web (App.css:493-506,
+  // border-radius:0) : la forme arrondie pleine est un motif que Direction D
+  // a explicitement banni, pas seulement sur Badge.
   chip: {
     paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderRadius: radius.full, borderWidth: 1, borderColor: colors.bordure, backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.bordure, backgroundColor: colors.surface,
   },
   chipActive: { backgroundColor: colors.seuil, borderColor: colors.seuil },
-  chipText: { fontSize: 12.5, fontWeight: '500', color: colors.ardoise },
-  chipTextActive: { color: '#fff' },
+  chipText: { fontFamily: fonts.sansMedium, fontSize: 12.5, color: colors.ardoise },
+  chipTextActive: { color: colors.accentInk },
 })

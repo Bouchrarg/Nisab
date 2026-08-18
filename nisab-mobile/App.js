@@ -1,21 +1,31 @@
 import { StatusBar } from 'expo-status-bar'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { AlertTriangle, CalendarClock, LogOut, TrafficCone } from 'lucide-react-native'
+import * as SplashScreen from 'expo-splash-screen'
+import { useFonts as useIBMPlexSans, IBMPlexSans_400Regular, IBMPlexSans_500Medium, IBMPlexSans_600SemiBold, IBMPlexSans_700Bold } from '@expo-google-fonts/ibm-plex-sans'
+import { useFonts as useIBMPlexMono, IBMPlexMono_400Regular, IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from '@expo-google-fonts/ibm-plex-mono'
+import { useFonts as useSourceSerif4, SourceSerif4_600SemiBold, SourceSerif4_700Bold } from '@expo-google-fonts/source-serif-4'
 import { AuthProvider, useAuth } from './src/context/AuthContext'
 import { DossierProvider } from './src/context/DossierContext'
 import LoginScreen from './src/screens/LoginScreen'
 import FeuxScreen from './src/screens/FeuxScreen'
 import EcheancesScreen from './src/screens/EcheancesScreen'
 import AlertesScreen from './src/screens/AlertesScreen'
-import { colors, spacing } from './src/theme'
+import { colors, fonts, spacing } from './src/theme'
 
 // SafeAreaView de 'react-native' est déprécié ET, sur Android, ne calcule
 // jamais correctement les marges de la barre de statut/de gestes (le topbar
 // venait chevaucher l'horloge du téléphone) — react-native-safe-area-context
 // est la lib qui calcule les vraies zones sûres, nécessite un
 // <SafeAreaProvider> à la racine de l'arbre (cf. export App() plus bas).
+
+// Garde le splash natif affiché tant que les 3 familles de polices Direction
+// D (IBM Plex Sans/Mono + Source Serif 4, cf. theme.js::fonts) ne sont pas
+// chargées — sinon un premier rendu flashe en police système avant de
+// re-render en police custom (FOUT), visible sur un cold start.
+SplashScreen.preventAutoHideAsync()
 
 // Routing manuel par useState, comme frontend/src/App.jsx:75 (pas de
 // react-router côté web) — même convention côté mobile, pas de
@@ -35,9 +45,11 @@ function AuthenticatedApp() {
     <DossierProvider>
       <SafeAreaView style={styles.screen}>
         <View style={styles.topbar}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>N</Text>
-          </View>
+          {/* Direction D retire le carré de logo (frontend/src/components/
+              layout/Sidebar.jsx:10, .brand-mark { display:none } dans
+              App.css) — la marque, c'est le mot "Nisab" en Source Serif 4,
+              plus aucun pictogramme. */}
+          <Text style={styles.brand}>Nisab</Text>
           <Text style={styles.topbarUser} numberOfLines={1}>{user?.nom_complet || user?.email}</Text>
           <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
             <LogOut size={16} color={colors.ardoise} />
@@ -80,8 +92,19 @@ function Root() {
 }
 
 export default function App() {
+  const [sansLoaded] = useIBMPlexSans({ IBMPlexSans_400Regular, IBMPlexSans_500Medium, IBMPlexSans_600SemiBold, IBMPlexSans_700Bold })
+  const [monoLoaded] = useIBMPlexMono({ IBMPlexMono_400Regular, IBMPlexMono_500Medium, IBMPlexMono_600SemiBold })
+  const [displayLoaded] = useSourceSerif4({ SourceSerif4_600SemiBold, SourceSerif4_700Bold })
+  const fontsReady = sansLoaded && monoLoaded && displayLoaded
+
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsReady) await SplashScreen.hideAsync()
+  }, [fontsReady])
+
+  if (!fontsReady) return null
+
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider onLayout={onLayoutRootView}>
       <AuthProvider>
         <Root />
       </AuthProvider>
@@ -97,9 +120,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
     backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.bordure,
   },
-  logo: { width: 28, height: 28, borderRadius: 7, backgroundColor: colors.seuil, alignItems: 'center', justifyContent: 'center' },
-  logoText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  topbarUser: { flex: 1, fontSize: 12.5, color: colors.ardoise },
+  brand: { fontFamily: fonts.display, fontSize: 17, color: colors.encre, letterSpacing: -0.2 },
+  topbarUser: { flex: 1, fontFamily: fonts.sans, fontSize: 12.5, color: colors.ardoise, textAlign: 'right' },
   logoutBtn: { padding: spacing.xs },
   body: { flex: 1 },
   tabbar: {
@@ -107,6 +129,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   tabItem: { flex: 1, alignItems: 'center', gap: 2 },
-  tabLabel: { fontSize: 10.5, color: colors.sourdine },
-  tabLabelActive: { color: colors.seuil, fontWeight: '600' },
+  tabLabel: { fontFamily: fonts.sansMedium, fontSize: 10.5, color: colors.sourdine },
+  tabLabelActive: { fontFamily: fonts.sansSemiBold, color: colors.seuil },
 })

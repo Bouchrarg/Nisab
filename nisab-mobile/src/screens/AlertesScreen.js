@@ -1,49 +1,53 @@
 import { useCallback, useEffect, useState } from 'react'
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import Badge from '../components/Badge'
 import DossierPicker from '../components/DossierPicker'
 import { apiFetch } from '../config/api'
 import { useDossier } from '../context/DossierContext'
-import { colors, radius, spacing } from '../theme'
+import { badgeTones, colors, fonts, radius, spacing } from '../theme'
 
-// Même règle qu'ailleurs dans le produit (FindingCard.jsx) : "non_calculable"
-// reste visible, jamais silencieusement absent — une règle a explicitement
-// conclu qu'elle ne pouvait rien affirmer, ce n'est pas un vide.
 const LABEL_CATEGORIE_MONTANT = {
   calculable: 'Exposition calculée',
   calculable_hypothese: 'Exposition calculée (sous hypothèse)',
   non_calculable: 'Montant non chiffrable automatiquement',
 }
 
-function AlerteCard({ f }) {
+// Équivalent RN de FindingCard (frontend/src/components/audit/FindingCard.jsx)
+// en lecture seule. Direction D a retiré la réglette de couleur verticale
+// ("ça fait IA") : la sévérité passe uniquement par le Badge carré, jamais
+// par un bandeau. Toutes les lignes filtrées ici sont severity==='rouge',
+// donc toujours "Critique" — même simplification que le filtre côté écran.
+function AlerteCard({ f, isLast }) {
   const montantChiffre = f.categorie_montant !== 'non_calculable' && f.amount_risk > 0
   return (
-    <View style={styles.card}>
-      <View style={styles.cardBar} />
-      <View style={styles.cardBody}>
-        <Text style={styles.cardTitle}>{f.title || 'Comptabilité non conforme'}</Text>
-
-        {montantChiffre ? (
-          <Text style={styles.amount}>
-            {f.categorie_montant === 'calculable_hypothese' ? '≈ ' : ''}
-            {Number(f.amount_risk).toLocaleString('fr-MA')} DH
-            <Text style={styles.amountLabel}>  {LABEL_CATEGORIE_MONTANT[f.categorie_montant]}</Text>
-          </Text>
-        ) : (
-          <Text style={styles.amountNone}>{LABEL_CATEGORIE_MONTANT.non_calculable}</Text>
-        )}
-
-        {f.description ? <Text style={styles.description}>{f.description}</Text> : null}
-        {f.montant_detail ? <Text style={styles.detail}>{f.montant_detail}</Text> : null}
-
-        {/* Zéro affirmation sans source, jusque sur ce shell lecture seule —
-            même exigence que CitationPills côté web (frontend/src/components/
-            audit/CitationPills.jsx), en version simple lecture. */}
-        {f.reference_cgi ? (
-          <View style={styles.citation}>
-            <Text style={styles.citationText}>{f.reference_cgi}</Text>
-          </View>
-        ) : null}
+    <View style={[styles.row, !isLast && styles.rowBorder]}>
+      <View style={styles.rowHead}>
+        <Badge tone={badgeTones.critique}>Critique</Badge>
+        <Text style={styles.cardTitle} numberOfLines={1}>{f.title || 'Comptabilité non conforme'}</Text>
       </View>
+
+      {montantChiffre ? (
+        <Text style={styles.amount}>
+          {f.categorie_montant === 'calculable_hypothese' ? '≈ ' : ''}
+          {Number(f.amount_risk).toLocaleString('fr-MA')} DH
+          <Text style={styles.amountLabel}>  {LABEL_CATEGORIE_MONTANT[f.categorie_montant]}</Text>
+        </Text>
+      ) : (
+        <Text style={styles.amountNone}>{LABEL_CATEGORIE_MONTANT.non_calculable}</Text>
+      )}
+
+      {f.description ? <Text style={styles.description}>{f.description}</Text> : null}
+      {f.montant_detail ? <Text style={styles.detail}>{f.montant_detail}</Text> : null}
+
+      {/* Zéro affirmation sans source, jusque sur ce shell lecture seule —
+          même exigence que CitationPills côté web. Texture "sourcé" du
+          Direction D : bordure pleine + mono, jamais un fond plein coloré
+          (frontend/src/App.css:1037-1041, .citation-pill.is-primary). */}
+      {f.reference_cgi ? (
+        <View style={styles.citation}>
+          <Text style={styles.citationText}>{f.reference_cgi}</Text>
+        </View>
+      ) : null}
     </View>
   )
 }
@@ -92,7 +96,9 @@ export default function AlertesScreen() {
         ) : critiques.length === 0 ? (
           <Text style={styles.muted}>Aucune alerte critique active sur ce dossier.</Text>
         ) : (
-          critiques.map((f) => <AlerteCard key={f.id} f={f} />)
+          <View style={styles.list}>
+            {critiques.map((f, i) => <AlerteCard key={f.id} f={f} isLast={i === critiques.length - 1} />)}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -102,25 +108,32 @@ export default function AlertesScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.toile },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
-  title: { fontSize: 19, fontWeight: '700', color: colors.encre },
-  subtitle: { fontSize: 12.5, color: colors.sourdine, marginTop: 2, marginBottom: spacing.md },
+  title: { fontFamily: fonts.display, fontSize: 20, color: colors.encre },
+  subtitle: { fontFamily: fonts.sans, fontSize: 12.5, color: colors.sourdine, marginTop: 2, marginBottom: spacing.md },
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
-  muted: { fontSize: 12.5, color: colors.sourdine, paddingTop: spacing.sm },
-  card: {
-    flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.card,
-    borderWidth: 1, borderColor: colors.bordure, marginBottom: spacing.md, overflow: 'hidden',
+  muted: { fontFamily: fonts.sans, fontSize: 12.5, color: colors.sourdine, paddingTop: spacing.sm },
+  // Ombre réservée sur la LISTE entière (une seule entité qu'on consulte),
+  // pas par ligne — même règle que .findings-list, cf. App.css:518-531.
+  list: {
+    backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.bordure,
+    overflow: 'hidden', marginBottom: spacing.md,
+    ...Platform.select({
+      ios: { shadowColor: '#1e0f0a', shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 3 },
+    }),
   },
-  cardBar: { width: 3, backgroundColor: colors.critique },
-  cardBody: { flex: 1, padding: spacing.md, gap: 6 },
-  cardTitle: { fontSize: 13.5, fontWeight: '700', color: colors.encre },
-  amount: { fontSize: 13, fontWeight: '700', color: colors.critique },
-  amountLabel: { fontSize: 11, fontWeight: '400', color: colors.sourdine },
-  amountNone: { fontSize: 11.5, color: colors.sourdine, fontWeight: '500' },
-  description: { fontSize: 12, color: colors.ardoise, lineHeight: 18 },
-  detail: { fontSize: 11, color: colors.sourdine, lineHeight: 16 },
+  row: { padding: spacing.md, gap: 5 },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.bordure },
+  rowHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 2 },
+  cardTitle: { flex: 1, fontFamily: fonts.sansBold, fontSize: 13.5, color: colors.encre },
+  amount: { fontFamily: fonts.monoSemiBold, fontSize: 12, color: colors.critique },
+  amountLabel: { fontFamily: fonts.sans, fontSize: 11, color: colors.sourdine },
+  amountNone: { fontFamily: fonts.sansMedium, fontSize: 11.5, color: colors.sourdine },
+  description: { fontFamily: fonts.sans, fontSize: 12, color: colors.ardoise, lineHeight: 18 },
+  detail: { fontFamily: fonts.sans, fontSize: 11, color: colors.sourdine, lineHeight: 16 },
   citation: {
-    alignSelf: 'flex-start', backgroundColor: colors.seuilSoft, borderRadius: radius.sm,
+    alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.seuil,
     paddingHorizontal: spacing.sm, paddingVertical: 4, marginTop: 2,
   },
-  citationText: { fontSize: 11, fontWeight: '600', color: colors.seuil },
+  citationText: { fontFamily: fonts.monoSemiBold, fontSize: 11, color: colors.seuil },
 })

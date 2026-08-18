@@ -4,10 +4,20 @@ import Badge from '../components/Badge'
 import DossierPicker from '../components/DossierPicker'
 import { apiFetch } from '../config/api'
 import { useDossier } from '../context/DossierContext'
-import { badgeTones, colors, radius, spacing } from '../theme'
+import { badgeTones, colors, fonts, radius, spacing } from '../theme'
 
 // Même mapping que URGENCY_CLS dans frontend/src/pages/CabinetOverviewPage.jsx:8
 const URGENCY_TONE = { critique: 'critique', urgent: 'vigilance', normal: 'seuil', planifié: 'conforme' }
+
+// Jour + mois seuls (pas d'année) — même gabarit que .list-date côté web
+// (frontend/src/components/calendar/CalendarEvent.jsx), un repère net plutôt
+// qu'une date en toutes lettres noyée dans le corps de la ligne.
+function dateParts(iso) {
+  const d = new Date(iso)
+  const day = d.toLocaleDateString('fr-MA', { day: '2-digit' })
+  const month = d.toLocaleDateString('fr-MA', { month: 'short' }).replace(/\.$/, '')
+  return { day, month }
+}
 
 export default function EcheancesScreen() {
   const { activeDossier } = useDossier()
@@ -48,17 +58,25 @@ export default function EcheancesScreen() {
         ) : events.length === 0 ? (
           <Text style={styles.muted}>Aucune échéance à venir.</Text>
         ) : (
-          events.map((e, i) => (
-            <View key={`${e.date}-${i}`} style={styles.row}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{e.title}</Text>
-                <Text style={styles.rowDate}>
-                  {new Date(e.date).toLocaleDateString('fr-MA', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </Text>
-              </View>
-              <Badge tone={badgeTones[URGENCY_TONE[e.urgency]] || badgeTones.neutral}>{e.category}</Badge>
-            </View>
-          ))
+          <View style={styles.list}>
+            {events.map((e, i) => {
+              const { day, month } = dateParts(e.date)
+              const urgent = e.urgency === 'critique' || e.urgency === 'urgent'
+              return (
+                <View key={`${e.date}-${i}`} style={[styles.row, i !== events.length - 1 && styles.rowBorder]}>
+                  <View style={[styles.dateBox, urgent && styles.dateBoxUrgent]}>
+                    <Text style={[styles.dateDay, urgent && styles.dateDayUrgent]}>{day}</Text>
+                    <Text style={styles.dateMonth}>{month}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowTitle} numberOfLines={2}>{e.title}</Text>
+                    {e.description ? <Text style={styles.rowSub} numberOfLines={2}>{e.description}</Text> : null}
+                  </View>
+                  <Badge tone={badgeTones[URGENCY_TONE[e.urgency]] || badgeTones.neutral} small>{e.category}</Badge>
+                </View>
+              )
+            })}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -68,15 +86,24 @@ export default function EcheancesScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.toile },
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
-  title: { fontSize: 19, fontWeight: '700', color: colors.encre },
-  subtitle: { fontSize: 12.5, color: colors.sourdine, marginTop: 2, marginBottom: spacing.md },
+  title: { fontFamily: fonts.display, fontSize: 20, color: colors.encre },
+  subtitle: { fontFamily: fonts.sans, fontSize: 12.5, color: colors.sourdine, marginTop: 2, marginBottom: spacing.md },
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
-  muted: { fontSize: 12.5, color: colors.sourdine, paddingTop: spacing.sm },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+  muted: { fontFamily: fonts.sans, fontSize: 12.5, color: colors.sourdine, paddingTop: spacing.sm },
+  list: {
     backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.bordure,
-    padding: spacing.md, marginBottom: spacing.sm,
+    overflow: 'hidden', marginBottom: spacing.md,
   },
-  rowTitle: { fontSize: 13, fontWeight: '600', color: colors.encre },
-  rowDate: { fontSize: 11.5, color: colors.sourdine, marginTop: 2 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
+  rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.bordure },
+  dateBox: {
+    minWidth: 38, alignItems: 'center', paddingVertical: 4, paddingHorizontal: 3,
+    backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.bordure, borderRadius: radius.sm,
+  },
+  dateBoxUrgent: { borderColor: colors.critique },
+  dateDay: { fontFamily: fonts.monoSemiBold, fontSize: 14, color: colors.encre, lineHeight: 16 },
+  dateDayUrgent: { color: colors.critique },
+  dateMonth: { fontFamily: fonts.sans, fontSize: 9, color: colors.sourdine, textTransform: 'uppercase', letterSpacing: 0.4 },
+  rowTitle: { fontFamily: fonts.sansBold, fontSize: 13, color: colors.encre, lineHeight: 17 },
+  rowSub: { fontFamily: fonts.sans, fontSize: 11, color: colors.sourdine, marginTop: 1 },
 })
