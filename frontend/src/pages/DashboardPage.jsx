@@ -224,32 +224,11 @@ export default function DashboardPage({
       {executive_summary && (
         <div className={`exec-summary-card exec-summary-card--${scoreCls}`}>
           <div className="exec-summary-left">
-            <div className="exec-summary-score-ring">
-              <svg viewBox="0 0 40 40" width="56" height="56">
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="16"
-                  fill="none"
-                  stroke="rgba(255,255,255,0.15)"
-                  strokeWidth="4"
-                />
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="16"
-                  fill="none"
-                  stroke="rgba(255,255,255,0.9)"
-                  strokeWidth="4"
-                  strokeDasharray={`${(compliance_score / 100) * 100.53} 100.53`}
-                  strokeLinecap="round"
-                  transform="rotate(-90 20 20)"
-                />
-              </svg>
-              <span className="exec-summary-score-num">
-                {compliance_score}
-              </span>
-            </div>
+            {/* Carré plein, pas un anneau SVG : même langage que le reste du
+                design (statut = carré coloré), et compliance_score est une
+                vraie donnée mesurée par l'audit — contrairement au score
+                cabinet global, qui lui n'existe pas côté API. */}
+            <div className={`exec-summary-score-box ${scoreCls}`}>{compliance_score}</div>
 
             <div className="exec-summary-text">
               <div className="exec-summary-label">Résumé exécutif</div>
@@ -323,46 +302,57 @@ export default function DashboardPage({
           à côté du chiffre, jamais cachée derrière : même exigence que le
           reste du produit ("zéro affirmation sans source"). */}
       {roi && (
-        <div className="card" style={{ marginTop: 16 }}>
+        <div className="card roi-card" style={{ marginTop: 16 }}>
           <div className="card-header">
             <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <PiggyBank size={14} style={{ color: 'var(--seuil)' }} />
               Valeur générée sur ce dossier
             </span>
           </div>
-          <div className="card-body" style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--sourdine)', marginBottom: 2 }}>Exposition régularisée</div>
-              <div className="mono" style={{ fontSize: 18, fontWeight: 700, color: 'var(--conforme)' }}>
-                {roi.exposition_regularisee_dh.toLocaleString('fr-MA')} DH
+          <div className="roi-grid">
+            <div className="roi-item">
+              <div
+                className="roi-item-label"
+                title={`Sur ${roi.exposition_detectee_dh.toLocaleString('fr-MA')} DH détectés au total.`}
+              >
+                Exposition régularisée
               </div>
-              <div style={{ fontSize: 10.5, color: 'var(--sourdine)' }}>
-                sur {roi.exposition_detectee_dh.toLocaleString('fr-MA')} DH détectés — mesuré
+              <div className="roi-item-value conforme">
+                {roi.exposition_regularisee_dh.toLocaleString('fr-MA')} <span className="unit">DH</span>
               </div>
+              <div className="roi-item-tag">mesuré</div>
             </div>
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--sourdine)', marginBottom: 2 }}>Temps de revue estimé épargné</div>
-              <div className="mono" style={{ fontSize: 18, fontWeight: 700, color: 'var(--ardoise)' }}>
-                {roi.temps_estime_h.toLocaleString('fr-MA')} h
+            <div className="roi-item">
+              <div
+                className="roi-item-label"
+                title={
+                  roi.hypotheses?.[0]
+                    ? `Estimé — hypothèse : ${roi.hypotheses[0].valeur} ${roi.hypotheses[0].unite}/pièce sans Nisab.`
+                    : 'Estimé.'
+                }
+              >
+                Temps épargné
               </div>
-              {roi.hypotheses?.[0] && (
-                <div style={{ fontSize: 10.5, color: 'var(--sourdine)' }}>
-                  estimé — hypothèse : {roi.hypotheses[0].valeur} {roi.hypotheses[0].unite}/pièce sans Nisab
-                </div>
-              )}
+              <div className="roi-item-value">
+                {roi.temps_estime_h.toLocaleString('fr-MA')} <span className="unit">h</span>
+              </div>
+              <div className="roi-item-tag">estimé</div>
             </div>
             {/* Échéances À VENIR, jamais mélangé aux anomalies déjà
                 détectées ci-dessus — seule la TVA a une base chiffrable
                 (TVA facturée - déductible dans les écritures). */}
             {roi.nb_echeances_suivies > 0 && (
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--sourdine)', marginBottom: 2 }}>Exposition échéances suivies</div>
-                <div className="mono" style={{ fontSize: 18, fontWeight: 700, color: 'var(--vigilance)' }}>
-                  {roi.exposition_echeances_dh.toLocaleString('fr-MA')} DH
+              <div className="roi-item">
+                <div
+                  className="roi-item-label"
+                  title={`${roi.nb_echeances_base_connue}/${roi.nb_echeances_suivies} échéance(s) chiffrable(s) (TVA uniquement).`}
+                >
+                  Échéances suivies
                 </div>
-                <div style={{ fontSize: 10.5, color: 'var(--sourdine)' }}>
-                  {roi.nb_echeances_base_connue} / {roi.nb_echeances_suivies} échéance(s) chiffrable(s) (TVA uniquement)
+                <div className="roi-item-value vigilance">
+                  {roi.exposition_echeances_dh.toLocaleString('fr-MA')} <span className="unit">DH</span>
                 </div>
+                <div className="roi-item-tag">TVA uniquement</div>
               </div>
             )}
           </div>
@@ -449,36 +439,20 @@ export default function DashboardPage({
                 const dt = parseDate(e.date)
                 const urgencyCls = e.urgency === 'critique' ? 'critique' : e.urgency === 'urgent' ? 'vigilance' : 'conforme'
                 return (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'flex',
-                      gap: 12,
-                      alignItems: 'center',
-                      padding: '11px 16px',
-                      borderBottom: i < upcomingEvents.length - 1 ? '1px solid var(--bordure)' : 'none',
-                    }}
-                  >
+                  <div key={i} className="list-row">
                     {dt && (
-                      <div style={{ textAlign: 'center', minWidth: 34 }}>
-                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 700, color: 'var(--encre)' }}>
-                          {dt.day}
-                        </div>
-                        <div style={{ fontSize: 10, color: 'var(--sourdine)', textTransform: 'uppercase' }}>
-                          {dt.month}
-                        </div>
+                      <div className="list-date">
+                        <div className="list-date-day">{dt.day}</div>
+                        <div className="list-date-month">{dt.month}</div>
                       </div>
                     )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: 12.5, fontWeight: 600, color: 'var(--encre)',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
+                    <div className="list-body">
+                      <div className="list-title" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {e.title}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--sourdine)' }}>{e.category}</div>
+                      <div className="list-sub">{e.category}</div>
                     </div>
-                    <Badge cls={urgencyCls} dot>{e.urgency}</Badge>
+                    <Badge cls={urgencyCls} small>{e.urgency}</Badge>
                   </div>
                 )
               })

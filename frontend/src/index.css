@@ -26,13 +26,17 @@
   --accent-ink: oklch(98% 0.006 75);  /* texte sur fond accent plein */
   --verified:   var(--seuil);          /* citation "sourcée" (CitationPills) */
 
-  /* Statuts — recalibrés pour ne jamais lire "orange" en aplat */
+  /* Statuts — rouge/orange/vert francs (pas la version ocre/mate d'origine :
+     validée quand le design remplissait encore de grands aplats colorés
+     avec ces teintes — trouvée "trop froide" une fois vue en vrai dans une
+     interface qui, depuis, n'utilise plus la couleur qu'en petites touches
+     (carré, filet). Le contexte qui justifiait la version mate a changé. ) */
   --conforme:       oklch(54% 0.13 152);
   --conforme-soft:  oklch(54% 0.13 152 / 0.08);
-  --vigilance:      oklch(48% 0.085 68);   /* ocre/brun mat */
-  --vigilance-soft: oklch(48% 0.085 68 / 0.10);
-  --critique:       oklch(48% 0.19 24);    /* rouge franc */
-  --critique-soft:  oklch(48% 0.19 24 / 0.08);
+  --vigilance:      oklch(64% 0.17 55);    /* orange franc */
+  --vigilance-soft: oklch(64% 0.17 55 / 0.12);
+  --critique:       oklch(52% 0.21 25);    /* rouge franc */
+  --critique-soft:  oklch(52% 0.21 25 / 0.09);
 
   /* Typographie */
   --font-sans:    'IBM Plex Sans', system-ui, -apple-system, sans-serif;

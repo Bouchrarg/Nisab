@@ -329,8 +329,8 @@
 }
 
 .gauge-label {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--ardoise);
 }
 
@@ -344,12 +344,14 @@
 .gauge-score.vigilance { color: var(--vigilance); }
 .gauge-score.critique { color: var(--critique); }
 
+/* Direction D : jauge à plat (radius 0), pas en pilule — même registre que
+   le reste (carré/filet, jamais arrondi complet sauf boutons/dot neutres). */
 .gauge-track {
   position: relative;
-  height: 10px;
-  border-radius: var(--radius-full);
-  background: var(--toile);
-  border: 1px solid var(--bordure);
+  height: 6px;
+  border-radius: 0;
+  background: var(--surface-2);
+  border: none;
   overflow: visible;
 }
 
@@ -357,7 +359,7 @@
   position: absolute;
   inset-block: 0;
   left: 0;
-  border-radius: var(--radius-full);
+  border-radius: 0;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -367,11 +369,11 @@
 
 .gauge-threshold {
   position: absolute;
-  top: -5px;
-  bottom: -5px;
-  width: 2px;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
   background: var(--encre);
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .gauge-threshold-label {
@@ -379,31 +381,34 @@
   margin-top: 4px;
   font-family: var(--font-mono);
   font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--sourdine);
 }
 
-/* ═══ CONFORMITY INDICATORS ══════════════════════════════════════════ */
+/* ═══ CONFORMITY INDICATORS — Direction D : carré, pas rond (même langage
+   que .badge-dot), carte bordée à plat plutôt que surface + ombre. ═══ */
 .indicators-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
 }
 
 .indicator-card {
-  background: var(--surface);
+  background: transparent;
   border: 1px solid var(--bordure);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-sm);
   padding: 12px 14px;
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
 }
 
 .indicator-dot {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: 0;
   flex-shrink: 0;
 }
 
@@ -413,7 +418,7 @@
 
 .indicator-label {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--encre);
 }
 
@@ -460,31 +465,58 @@
 .badge-sm { font-size: 10px; font-weight: 500; gap: 6px; color: var(--ardoise); }
 .badge-sm .badge-dot { width: 7px; height: 7px; }
 
-/* ═══ FINDINGS / ANOMALIES ═══════════════════════════════════════════ */
+/* ═══ FILTRES PAR SÉVÉRITÉ — remplace une bande KPI passive : mêmes
+   compteurs, mais cliquables. Carré coloré = même langage que Badge/KPI,
+   jamais un fond plein coloré sur le chip lui-même (seul l'état actif, en
+   encre neutre, se distingue). ═══════════════════════════════════════ */
+.filter-row { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--bordure);
+  background: var(--surface);
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--encre);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.filter-chip .sq { width: 8px; height: 8px; border-radius: 0; flex-shrink: 0; }
+.filter-chip .sq.critique  { background: var(--critique); }
+.filter-chip .sq.vigilance { background: var(--vigilance); }
+.filter-chip .sq.conforme  { background: var(--conforme); }
+.filter-chip.is-active {
+  background: var(--encre);
+  color: var(--toile);
+  border-color: var(--encre);
+}
+.filter-chip:not(.is-active):hover { border-color: var(--ardoise); }
+
+/* ═══ FINDINGS / ANOMALIES — Direction D : liste à filets, pas des cartes
+   flottantes empilées (même motif que .kpi-grid / .card.widget). Le Badge
+   dans .finding-left porte déjà le carré de sévérité — la réglette verticale
+   .finding-bar était exactement le pattern "ça fait IA" banni ailleurs,
+   retirée du JSX (FindingCard.jsx) en même temps que cette règle. Ombre sur
+   la LISTE entière (une seule entité qu'on consulte), pas sur chaque ligne
+   individuelle — sinon des ombres qui se chevauchent entre lignes collées. */
 .findings-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  border: 1px solid var(--bordure);
+  overflow: hidden;
+  box-shadow: var(--shadow-entity);
+  margin-bottom: 22px;
 }
 
 .finding {
   background: var(--surface);
-  border: 1px solid var(--bordure);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
+  border: none;
+  box-shadow: none;
 }
-
-.finding-bar {
-  width: 3px;
-  flex-shrink: 0;
-  align-self: stretch;
-  border-radius: 2px 0 0 2px;
-}
-
-.finding-bar.critique { background: var(--critique); }
-.finding-bar.vigilance { background: var(--vigilance); }
-.finding-bar.conforme { background: var(--conforme); }
+.finding:not(:last-child) { border-bottom: 1px solid var(--bordure); }
 
 .finding-inner {
   display: flex;
@@ -494,7 +526,7 @@
 
 .finding-main {
   flex: 1;
-  padding: 12px 16px;
+  padding: 14px 18px;
   cursor: pointer;
   min-width: 0;
 }
@@ -514,8 +546,8 @@
 }
 
 .finding-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   color: var(--encre);
   white-space: nowrap;
   overflow: hidden;
@@ -948,6 +980,59 @@
   white-space: pre-wrap;
   background: var(--toile);
 }
+/* Rien trouvé dans le corpus pour cet article : même texture que la
+   pastille (pointillé + italique), pas une simple couleur d'erreur. */
+.law-article-text.is-unverified {
+  border-top-style: dashed;
+  font-style: italic;
+  color: var(--sourdine);
+}
+
+/* ═══ CITATIONS — Direction D, 3 textures ═════════════════════════════
+   sourcé (article retenu) = bordure pleine + coche ; secondaire (autres
+   candidats RAG) = étiquette neutre ; non vérifié (rien trouvé dans le
+   corpus) = bordure pointillée + italique. Jamais un fond plein coloré. */
+.citations-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.citation-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  background: transparent;
+  border: 1px solid transparent;
+}
+.citation-pill.is-primary {
+  border-color: var(--verified);
+  color: var(--verified);
+  font-weight: 600;
+}
+.citation-pill.is-secondary {
+  border-color: var(--bordure);
+  color: var(--ardoise);
+  font-weight: 500;
+}
+.citation-pill.is-unverified {
+  border-style: dashed;
+  border-color: var(--sourdine);
+  color: var(--sourdine);
+  font-style: italic;
+  cursor: default;
+}
+.citation-pill.is-primary:hover,
+.citation-pill.is-secondary:hover {
+  background: var(--surface-2);
+}
+.citation-source-tag {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--ardoise);
+  background: var(--surface-2);
+  border: 1px solid var(--bordure);
+  padding: 1px 6px;
+}
 
 .law-empty {
   display: flex;
@@ -1001,30 +1086,33 @@
 
 .form-input::placeholder { color: #9ca3af; }
 
-/* ═══ ALERTS ═════════════════════════════════════════════════════════ */
+/* ═══ ALERTS — Direction D : texte toujours en encre neutre, seul le carré
+   porte la couleur (même principe que .badge). ═══════════════════════ */
 .alert {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 10px 14px;
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-sm);
   font-size: 13px;
+  font-weight: 600;
   line-height: 1.5;
+  color: var(--encre);
 }
 
 .alert-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
   margin-top: 5px;
   flex-shrink: 0;
 }
 
-.alert.conforme { background: var(--conforme-soft); color: var(--conforme); border: 1px solid rgba(29,138,76,0.2); }
-.alert.vigilance { background: var(--vigilance-soft); color: var(--vigilance); border: 1px solid rgba(194,103,12,0.2); }
-.alert.critique { background: var(--critique-soft); color: var(--critique); border: 1px solid rgba(192,40,28,0.2); }
-.alert.info { background: var(--seuil-soft); color: var(--seuil); border: 1px solid rgba(36,81,214,0.15); }
-.alert.neutral { background: var(--toile); color: var(--ardoise); border: 1px solid var(--bordure); }
+.alert.conforme { background: var(--conforme-soft); border: 1px solid color-mix(in oklch, var(--conforme) 30%, transparent); }
+.alert.vigilance { background: var(--vigilance-soft); border: 1px solid color-mix(in oklch, var(--vigilance) 30%, transparent); }
+.alert.critique { background: var(--critique-soft); border: 1px solid color-mix(in oklch, var(--critique) 30%, transparent); }
+.alert.info { background: var(--seuil-soft); border: 1px solid color-mix(in oklch, var(--seuil) 25%, transparent); }
+.alert.neutral { background: var(--surface-2); border: 1px solid var(--bordure); }
 
 .alert.conforme .alert-dot { background: var(--conforme); }
 .alert.vigilance .alert-dot { background: var(--vigilance); }
@@ -1198,39 +1286,27 @@
 .odoo-path-sep  { color: var(--seuil); margin: 0 3px; opacity: 0.6; }
 .odoo-path-record { color: var(--seuil); font-family: var(--font-mono); font-size: 11px; }
 
-/* ═══ EXECUTIVE SUMMARY CARD ═════════════════════════════════════════ */
+/* ═══ RÉSUMÉ EXÉCUTIF (dossier) ═══════════════════════════════════════
+   Direction D : plus de gradient bleu/orange/rouge plein cadre (c'était
+   la dernière trace de l'ancienne palette "seuil" dans le code). Carte
+   neutre, seul le carré de score porte l'aplat de couleur — même principe
+   que .roi-card (filet) et .badge (carré) : la couleur en petites touches
+   contenues, jamais en fond plein sur un gros bloc. */
 .exec-summary-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 18px 22px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--bordure);
   border-radius: var(--radius-card);
   margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--encre) 0%, #2451D6 100%);
-  box-shadow: 0 4px 20px rgba(36,81,214,0.25);
-  color: #fff;
-  overflow: hidden;
-  position: relative;
 }
 
-.exec-summary-card::before {
-  content: '';
-  position: absolute;
-  top: -30px; right: -30px;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.05);
-}
-
-.exec-summary-card--vigilance {
-  background: linear-gradient(135deg, #7c4a00 0%, var(--vigilance) 100%);
-  box-shadow: 0 4px 20px rgba(194,103,12,0.25);
-}
-.exec-summary-card--critique {
-  background: linear-gradient(135deg, #6b0f0a 0%, var(--critique) 100%);
-  box-shadow: 0 4px 20px rgba(192,40,28,0.25);
-}
+.exec-summary-card--conforme  .exec-summary-label { color: var(--conforme); }
+.exec-summary-card--vigilance .exec-summary-label { color: var(--vigilance); }
+.exec-summary-card--critique  .exec-summary-label { color: var(--critique); }
 
 .exec-summary-left {
   display: flex;
@@ -1240,64 +1316,64 @@
   min-width: 0;
 }
 
-.exec-summary-score-ring {
-  position: relative;
+.exec-summary-score-box {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-}
-
-.exec-summary-score-num {
-  position: absolute;
-  font-family: var(--font-mono);
-  font-size: 14px;
+  width: 58px;
+  height: 58px;
+  font-family: var(--font-display);
   font-weight: 700;
-  color: #fff;
+  font-size: 24px;
+  color: var(--accent-ink);
 }
+.exec-summary-score-box.conforme  { background: var(--conforme); }
+.exec-summary-score-box.vigilance { background: var(--vigilance); }
+.exec-summary-score-box.critique  { background: var(--critique); }
 
 .exec-summary-text { flex: 1; min-width: 0; }
 
 .exec-summary-label {
+  font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgba(255,255,255,0.55);
-  margin-bottom: 4px;
+  letter-spacing: 0.08em;
+  color: var(--sourdine);
+  margin-bottom: 5px;
 }
 
 .exec-summary-body {
   font-size: 13px;
   line-height: 1.5;
-  color: rgba(255,255,255,0.92);
+  color: var(--encre);
 }
 
 .exec-summary-urgency {
   font-size: 11px;
-  color: rgba(255,255,255,0.65);
+  color: var(--sourdine);
   margin-top: 6px;
 }
+.exec-summary-urgency strong { color: var(--encre); }
 
 .exec-summary-cta {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 7px 14px;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.25);
-  border-radius: var(--radius-md);
-  color: #fff;
+  background: transparent;
+  border: 1px solid var(--ardoise);
+  border-radius: var(--radius-full);
+  color: var(--encre);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
-.exec-summary-cta:hover { background: rgba(255,255,255,0.25); }
+.exec-summary-cta:hover { background: var(--encre); color: var(--toile); border-color: var(--encre); }
 
 /* ═══ NOTIFICATION BELL PANEL ════════════════════════════════════════ */
 .notif-badge {
@@ -1430,88 +1506,62 @@
   padding: 12px 18px;
 }
 
-/* ═══ GLOBAL COPILOT DRAWER ══════════════════════════════════════════ */
-
-/* FAB Button */
+/* ═══ COPILOTE — Direction D ══════════════════════════════════════════
+   Deux changements structurels, pas seulement esthétiques :
+   1. Le FAB devient un carré plein bordeaux (52×52, radius 0, pas de pilule
+      ni de dégradé) — direct du CSS source de l'artifact (.fab).
+   2. Le tiroir passe de "panneau plein écran qui glisse depuis la droite"
+      à "carte flottante compacte ancrée près du FAB" (comme l'artifact :
+      `right/bottom` fixe, hauteur bornée) — plus de overlay sombre plein
+      écran (il n'a de sens que pour un panneau qui capture l'attention en
+      entier ; une carte de chat compacte n'a pas à assombrir toute la page). */
 .copilot-fab {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  display: inline-flex;
+  bottom: 26px;
+  right: 26px;
+  width: 52px;
+  height: 52px;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 11px 16px;
-  background: var(--encre);
-  color: #fff;
+  justify-content: center;
+  background: var(--seuil);
+  color: var(--accent-ink);
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: 0;
   cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: 0 4px 16px rgba(22,24,29,0.28), 0 2px 6px rgba(22,24,29,0.12);
   z-index: 900;
-  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+  transition: background 0.15s;
   user-select: none;
 }
+.copilot-fab:hover { background: var(--seuil-dark); }
+.copilot-fab--active { background: var(--encre); }
 
-.copilot-fab:hover {
-  background: #2451D6;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(36,81,214,0.35);
-}
-
-.copilot-fab--active {
-  background: var(--critique);
-  padding: 11px 14px;
-}
-.copilot-fab--active:hover { background: #a01f15; transform: none; }
-
-.copilot-fab-label {
-  font-size: 12.5px;
-  letter-spacing: 0.01em;
-}
-
-/* Overlay */
-.copilot-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(22,24,29,0.25);
-  z-index: 800;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-/* Drawer */
+/* Tiroir — carte flottante compacte, pas un panneau plein écran */
 .copilot-drawer {
   position: fixed;
-  top: 0;
-  right: 0;
-  width: 400px;
-  height: 100vh;
+  right: 26px;
+  bottom: 92px;
+  width: 360px;
+  max-height: min(560px, 68vh);
   background: var(--surface);
-  border-left: 1px solid var(--bordure);
-  box-shadow: -4px 0 32px rgba(22,24,29,0.12);
+  border: 1px solid var(--bordure);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-entity);
   z-index: 850;
-  display: flex;
+  display: none;
   flex-direction: column;
-  transform: translateX(100%);
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
+.copilot-drawer--open { display: flex; }
 
-.copilot-drawer--open { transform: translateX(0); }
-
-.copilot-drawer--minimized { height: auto; bottom: 0; top: auto; border-radius: var(--radius-card) var(--radius-card) 0 0; }
-
-/* Drawer Header */
+/* En-tête — neutre (plus de bandeau encre plein), titre en serif */
 .copilot-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  background: var(--encre);
+  padding: 12px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--bordure);
   flex-shrink: 0;
 }
 
@@ -1522,68 +1572,66 @@
 }
 
 .copilot-avatar {
-  width: 28px; height: 28px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #2451D6, #7c3aed);
+  width: 26px; height: 26px;
+  border-radius: 0;
+  background: var(--seuil);
   display: flex; align-items: center; justify-content: center;
-  color: #fff;
+  color: var(--accent-ink);
   flex-shrink: 0;
 }
 
 .copilot-header-title {
-  font-size: 13px;
+  font-family: var(--font-display);
+  font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--encre);
 }
 
 .copilot-header-sub {
   font-size: 10.5px;
-  color: rgba(255,255,255,0.4);
+  color: var(--sourdine);
   margin-top: 1px;
 }
 
 .copilot-header-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .copilot-icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px; height: 26px;
+  width: 24px; height: 24px;
   border: none;
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.6);
-  border-radius: 6px;
+  background: transparent;
+  color: var(--sourdine);
+  border-radius: 0;
   cursor: pointer;
-  font-size: 12px;
-  transition: background 0.12s, color 0.12s;
+  transition: color 0.12s;
 }
-.copilot-icon-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.copilot-icon-btn:hover { color: var(--encre); }
 
-/* Context badge */
+/* Bandeau de contexte — carré, pas un rond (même langage que le badge) */
 .copilot-context-badge {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   padding: 6px 14px;
-  background: var(--seuil-soft);
+  background: var(--surface-2);
   border-bottom: 1px solid var(--bordure);
   font-size: 11px;
-  color: var(--seuil);
+  color: var(--ardoise);
   flex-shrink: 0;
 }
 
 .copilot-context-dot {
-  width: 5px; height: 5px;
-  border-radius: 50%;
+  width: 6px; height: 6px;
+  border-radius: 0;
   background: var(--seuil);
-  animation: pulse 1.8s infinite;
 }
 
-/* Body */
 .copilot-body {
   flex: 1;
   display: flex;
@@ -1591,7 +1639,6 @@
   overflow: hidden;
 }
 
-/* Conversation */
 .copilot-conversation {
   flex: 1;
   overflow-y: auto;
@@ -1601,7 +1648,6 @@
   gap: 14px;
 }
 
-/* Empty state */
 .copilot-empty {
   flex: 1;
   display: flex;
@@ -1612,8 +1658,8 @@
 }
 
 .copilot-empty-icon {
-  width: 44px; height: 44px;
-  border-radius: 12px;
+  width: 40px; height: 40px;
+  border-radius: 0;
   background: var(--seuil-soft);
   display: flex; align-items: center; justify-content: center;
   color: var(--seuil);
@@ -1621,7 +1667,8 @@
 }
 
 .copilot-empty-title {
-  font-size: 14px;
+  font-family: var(--font-display);
+  font-size: 15px;
   font-weight: 600;
   color: var(--encre);
   margin-bottom: 5px;
@@ -1643,9 +1690,9 @@
 }
 
 .copilot-suggestion {
-  background: var(--toile);
+  background: var(--surface-2);
   border: 1px solid var(--bordure);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: 8px 12px;
   font-size: 12px;
   color: var(--encre);
@@ -1656,32 +1703,22 @@
 }
 .copilot-suggestion:hover {
   border-color: var(--seuil);
-  background: var(--seuil-soft);
   color: var(--seuil);
 }
 
-/* Messages */
+/* Messages — bulles à coin unique arrondi (repère "envoyé par moi" ou "par
+   l'assistant"), sinon anguleuses comme le reste. Plus d'avatar par message
+   (déjà porté par l'en-tête du tiroir, un de plus par bulle était redondant). */
 .copilot-msg-row {
   display: flex;
   gap: 8px;
-  animation: slideIn 0.18s ease;
 }
 .copilot-msg-row.user { justify-content: flex-end; }
-
-.copilot-msg-avatar {
-  width: 22px; height: 22px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #2451D6, #7c3aed);
-  display: flex; align-items: center; justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
 
 .copilot-bubble {
   max-width: 300px;
   padding: 9px 13px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-size: 12.5px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -1689,57 +1726,54 @@
 
 .copilot-msg-row.user .copilot-bubble {
   background: var(--encre);
-  color: rgba(255,255,255,0.92);
-  border-bottom-right-radius: 3px;
+  color: var(--toile);
 }
 
 .copilot-msg-row.assistant .copilot-bubble {
-  background: var(--toile);
+  background: var(--surface-2);
   border: 1px solid var(--bordure);
   color: var(--encre);
-  border-bottom-left-radius: 3px;
 }
 
 .copilot-bubble--loading { color: var(--sourdine); font-style: italic; }
 
-/* Sources */
+/* Sources — même texture "sourcé" que CitationPills (bordure pleine +
+   coche), pas un style de pastille différent inventé pour cet écran. */
 .copilot-sources {
-  margin-left: 30px;
+  margin-left: 0;
   margin-top: -6px;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
 }
 
 .copilot-source-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
-  background: var(--toile);
-  border: 1px solid var(--bordure);
-  border-radius: var(--radius-sm);
+  gap: 5px;
+  padding: 4px 9px;
+  background: transparent;
+  border: 1px solid var(--verified);
+  border-radius: 0;
   font-family: var(--font-mono);
-  font-size: 9.5px;
-  color: var(--ardoise);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--verified);
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
+  transition: background 0.12s;
 }
 .copilot-source-pill:hover,
 .copilot-source-pill.active {
-  border-color: var(--seuil);
-  background: var(--seuil-soft);
-  color: var(--seuil);
+  background: var(--surface-2);
 }
 
-/* Law preview */
+/* Aperçu de loi */
 .copilot-law-preview {
-  margin: 6px 0 0 30px;
-  background: var(--toile);
+  margin: 6px 0 0 0;
+  background: transparent;
   border: 1px solid var(--bordure);
-  border-radius: var(--radius-sm);
+  border-radius: 0;
   padding: 8px 10px;
-  animation: slideIn 0.15s ease;
 }
 .copilot-law-ref {
   font-family: var(--font-mono);
@@ -1757,7 +1791,7 @@
   overflow-y: auto;
 }
 
-/* Composer */
+/* Composeur */
 .copilot-composer-wrap {
   padding: 10px 12px 12px;
   background: var(--surface);
@@ -1769,15 +1803,14 @@
   display: flex;
   align-items: flex-end;
   gap: 6px;
-  background: var(--toile);
+  background: var(--surface-2);
   border: 1px solid var(--bordure);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 5px 5px 5px 12px;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s;
 }
 .copilot-composer:focus-within {
   border-color: var(--seuil);
-  box-shadow: 0 0 0 2px rgba(36,81,214,0.12);
 }
 
 .copilot-composer textarea {
@@ -1793,17 +1826,17 @@
   color: var(--encre);
   max-height: 100px;
 }
-.copilot-composer textarea::placeholder { color: #9ca3af; }
+.copilot-composer textarea::placeholder { color: var(--sourdine); }
 
 .copilot-send-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px; height: 30px;
+  width: 28px; height: 28px;
   border: none;
   background: var(--seuil);
-  color: #fff;
-  border-radius: 6px;
+  color: var(--accent-ink);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.12s;

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 import { apiFetch } from '../../config/api'
 import { reflowText } from '../../utils/text'
 
@@ -21,9 +22,14 @@ function normalizeArticleRef(ref) {
  * confort — c'est la garantie que « cliquer sur un article affiche son texte »
  * se comporte pareil partout, y compris quand l'article a disparu du corpus.
  *
- * `principale` est mise en avant (couleur, taille) : c'est le fondement retenu.
- * `secondaires` sont les autres articles retrouvés par le RAG, dédoublonnés
- * contre la principale.
+ * Direction D : trois textures, pas deux. `principale` = sourcée (bordure
+ * pleine + coche, c'est le fondement retenu). `secondaires` = étiquette
+ * neutre (autres candidats remontés par le RAG). La troisième texture — non
+ * vérifié, bordure pointillée + italique — ne peut PAS être connue à
+ * l'avance : on ne sait si un article existe encore dans le corpus qu'après
+ * l'avoir cherché (le corpus est versionné, un article a pu être abrogé
+ * depuis l'audit). Elle s'applique donc à la pastille cliquée UNE FOIS que
+ * la recherche a échoué, pas par anticipation.
  *
  * `source` (optionnel) : le millésime du corpus qui a réellement produit ces
  * citations, ex. « Code General des Impots 2024 (version 2024-01-01) ». Le
@@ -76,52 +82,44 @@ export default function CitationPills({
     }
   }
 
+  // Non vérifié seulement pour la pastille qu'on vient de chercher et qui
+  // n'a rien donné — pas pour les autres, dont on ne sait encore rien.
+  const nonVerifie = (ref) => activeRef === ref && !loading && erreur
+
   return (
     <div style={{ marginBottom: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--sourdine)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
           {titre}
         </div>
         {source && (
-          <span
-            title="Source du corpus contre laquelle cette alerte a été produite"
-            style={{
-              fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ardoise)',
-              background: 'var(--toile)', border: '1px solid var(--bordure)',
-              borderRadius: 4, padding: '1px 6px',
-            }}
-          >
+          <span className="citation-source-tag" title="Source du corpus contre laquelle cette alerte a été produite">
             {source}
           </span>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div className="citations-row">
         {principale && (
           <button
             onClick={() => toggle(principale)}
-            style={{
-              fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--seuil)',
-              background: activeRef === principale
-                ? 'color-mix(in srgb, var(--seuil) 20%, transparent)'
-                : 'color-mix(in srgb, var(--seuil) 10%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--seuil) 25%, transparent)',
-              borderRadius: 4, padding: '2px 8px', fontWeight: 600, cursor: 'pointer',
-            }}>{principale}</button>
+            className={`citation-pill ${nonVerifie(principale) ? 'is-unverified' : 'is-primary'}`}
+          >
+            {!nonVerifie(principale) && <Check size={11} />}
+            {principale}
+          </button>
         )}
         {autres.map((s, i) => (
           <button
             key={i}
             onClick={() => toggle(s)}
-            style={{
-              fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ardoise)',
-              background: activeRef === s ? 'var(--bordure)' : 'var(--toile)',
-              border: '1px solid var(--bordure)',
-              borderRadius: 4, padding: '2px 6px', cursor: 'pointer',
-            }}>{s}</button>
+            className={`citation-pill ${nonVerifie(s) ? 'is-unverified' : 'is-secondary'}`}
+          >
+            {s}
+          </button>
         ))}
       </div>
       {activeRef && (
-        <div className="law-article-text" style={{ marginTop: 8, borderRadius: 6, border: '1px solid var(--bordure)' }}>
+        <div className={`law-article-text${erreur && !loading ? ' is-unverified' : ''}`} style={{ marginTop: 8 }}>
           {loading && 'Chargement de l\'article…'}
           {!loading && erreur && erreur}
           {!loading && !erreur && reflowText(texte)}

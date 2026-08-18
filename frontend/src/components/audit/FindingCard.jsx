@@ -68,7 +68,8 @@ export default function FindingCard({ f, proposition, onProposer, onVoirProposit
   return (
     <div className="finding">
       <div className="finding-inner">
-        <div className={`finding-bar ${cls}`} />
+        {/* Direction D : plus de réglette de couleur verticale — le Badge
+            juste en dessous (carré + texte) porte déjà la sévérité. */}
         <div className="finding-main">
 
           <div className="finding-head" onClick={() => setOpen(o => !o)} style={{ cursor: 'pointer' }}>

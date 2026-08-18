@@ -1,5 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react"
-import { MessageSquare, X, Send, FileText, ChevronDown, Minimize2, Sparkles } from "lucide-react"
+import { MessageSquare, X, Send, Check, ChevronDown, Minimize2, Sparkles } from "lucide-react"
 import { dossierFetch } from "./config/api"
 import { reflowText } from "./utils/text"
 
@@ -116,7 +116,9 @@ export default function GlobalCopilot({ activeView, findings, dossierId }) {
 
   return (
     <>
-      {/* FAB */}
+      {/* FAB — carré plein, icône seule (cf. .fab du CSS source de
+          l'artifact) ; le titre a été retiré du bouton lui-même, il reste
+          disponible via l'infobulle. */}
       <button
         className={`copilot-fab${isOpen ? " copilot-fab--active" : ""}`}
         onClick={() => { setIsOpen(o => !o); setMinimized(false) }}
@@ -124,10 +126,11 @@ export default function GlobalCopilot({ activeView, findings, dossierId }) {
         title="Copilote Nisab IA"
       >
         {isOpen ? <X size={20} /> : <MessageSquare size={20} />}
-        {!isOpen && <span className="copilot-fab-label">Nisab IA</span>}
       </button>
 
-      {isOpen && <div className="copilot-overlay" onClick={() => setIsOpen(false)} />}
+      {/* Plus d'overlay plein écran : le tiroir est une carte flottante
+          compacte ancrée près du FAB, pas un panneau qui capture toute
+          l'attention — pas besoin d'assombrir le reste de la page. */}
 
       {/* Drawer */}
       <div className={`copilot-drawer${isOpen ? " copilot-drawer--open" : ""}${minimized ? " copilot-drawer--minimized" : ""}`}>
@@ -178,8 +181,10 @@ export default function GlobalCopilot({ activeView, findings, dossierId }) {
               ) : (
                 messages.map((m, i) => (
                   <div key={i}>
+                    {/* Plus d'avatar par bulle : déjà porté une fois par
+                        l'en-tête du tiroir, en remettre un par message était
+                        redondant. */}
                     <div className={`copilot-msg-row ${m.role}`}>
-                      {m.role === "assistant" && <div className="copilot-msg-avatar"><Sparkles size={10} /></div>}
                       <div className={`copilot-bubble${m.content == null ? " copilot-bubble--loading" : ""}`}>
                         {m.content ?? "Analyse en cours…"}
                       </div>
@@ -192,7 +197,7 @@ export default function GlobalCopilot({ activeView, findings, dossierId }) {
                             className={`copilot-source-pill${activeLaw?.id === s.id ? " active" : ""}`}
                             onClick={() => setActiveLaw(activeLaw?.id === s.id ? null : s)}
                           >
-                            <FileText size={9} />
+                            <Check size={10} />
                             {s.reference}
                           </button>
                         ))}

@@ -1,6 +1,13 @@
+import { useState } from 'react'
 import { RefreshCw, Search } from 'lucide-react'
 import FindingCard from '../components/audit/FindingCard'
 import { severityToCls } from '../utils/severity'
+
+const NIVEAUX = [
+  { cls: 'critique', label: 'Critique' },
+  { cls: 'vigilance', label: 'Modéré' },
+  { cls: 'conforme', label: 'Conforme' },
+]
 
 // Date de la dernière analyse, en clair. Elle n'avait pas à être affichée
 // tant que l'audit se relançait tout seul à l'ouverture : ce qu'on voyait
@@ -22,6 +29,10 @@ export default function AuditPage({
   corpusSources = [], sourceAudit = '', onChangeSourceAudit, onConfirmerRetenueSource,
   auditStatus = 'jamais_lance', auditDate = null, resultatPerime = false,
 }) {
+  // 'toutes' | 'critique' | 'vigilance' | 'conforme' — purement d'affichage,
+  // ne relance rien côté serveur : les findings sont déjà tous chargés.
+  const [filtre, setFiltre] = useState('toutes')
+
   if (!hasData) {
     return (
       <div className="empty-state">
@@ -145,20 +156,27 @@ export default function AuditPage({
         </div>
       )}
 
-      {/* Masqués tant qu'aucune analyse n'a tourné : trois compteurs à zéro
-          se lisent comme « zéro anomalie », pas comme « rien n'a été mesuré ». */}
-      {!jamaisLance && (
-        <div className="kpi-grid" style={{ marginBottom: 16 }}>
-          {[
-            { label: 'Critique', value: byLevel.critique, cls: 'critique' },
-            { label: 'Modéré', value: byLevel.vigilance, cls: 'vigilance' },
-            { label: 'Faible', value: byLevel.conforme, cls: 'conforme' },
-          ].map(({ label, value, cls }) => (
-            <div className="kpi-card" key={label}>
-              <div className="kpi-label">Niveau {label}</div>
-              <div className={`kpi-value ${cls}`}>{value}</div>
-              <div className="kpi-sub">anomalie(s)</div>
-            </div>
+      {/* Masqués tant qu'aucune analyse n'a tourné : des compteurs à zéro se
+          lisent comme « zéro anomalie », pas comme « rien n'a été mesuré ».
+          Remplace l'ancienne bande KPI (Critique/Modéré/Faible) : mêmes
+          compteurs, mais cliquables — inutile d'avoir les deux. */}
+      {!jamaisLance && findings.length > 0 && (
+        <div className="filter-row">
+          <button
+            className={`filter-chip${filtre === 'toutes' ? ' is-active' : ''}`}
+            onClick={() => setFiltre('toutes')}
+          >
+            Toutes ({findings.length})
+          </button>
+          {NIVEAUX.map(({ cls, label }) => (
+            <button
+              key={cls}
+              className={`filter-chip${filtre === cls ? ' is-active' : ''}`}
+              onClick={() => setFiltre(cls)}
+            >
+              <span className={`sq ${cls}`} />
+              {label} ({byLevel[cls]})
+            </button>
           ))}
         </div>
       )}
@@ -193,19 +211,24 @@ export default function AuditPage({
             </div>
           </div>
         )
-      ) : (
-        <div className="findings-list">
-          {findings.map((f, i) => <FindingCard
-              key={f.id || i}
-              f={f}
-              proposition={propositions[f.id]}
-              onProposer={onProposer}
-              onVoirProposition={onVoirProposition}
-              propositionEnCours={propositionEnCours === f.id}
-              onConfirmerRetenueSource={onConfirmerRetenueSource}
-            />)}
-        </div>
-      )}
+      ) : (() => {
+        const filtered = filtre === 'toutes' ? findings : findings.filter((f) => severityToCls(f.severity) === filtre)
+        return filtered.length === 0 ? (
+          <div className="empty-state-sub">Aucune anomalie de ce niveau parmi les {findings.length} détectée(s).</div>
+        ) : (
+          <div className="findings-list">
+            {filtered.map((f, i) => <FindingCard
+                key={f.id || i}
+                f={f}
+                proposition={propositions[f.id]}
+                onProposer={onProposer}
+                onVoirProposition={onVoirProposition}
+                propositionEnCours={propositionEnCours === f.id}
+                onConfirmerRetenueSource={onConfirmerRetenueSource}
+              />)}
+          </div>
+        )
+      })()}
     </div>
   )
 }
