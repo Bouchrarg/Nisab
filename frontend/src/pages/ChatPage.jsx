@@ -3,24 +3,18 @@ import { MessageSquare, Send, FileText, BookOpen } from 'lucide-react'
 import { apiFetch, dossierFetch, getActiveDossierId } from '../config/api'
 import { reflowText } from '../utils/text'
 
-// Les 3 langues reprennent volontairement les 4 mêmes sujets fiscaux : ça
-// garantit que le RAG retrouve les mêmes articles déjà vérifiés en français,
-// et ça rend la comparaison FR / darija / arabe directe (même question, même
-// citation attendue) plutôt que trois sujets qui n'ont rien à voir.
-// `rtl` sert uniquement à orienter le bouton — la darija latine (arabizi)
-// reste en alphabet latin, seul l'arabe classique s'écrit de droite à gauche.
+// 4 suggestions, pas 12 : un mur de boutons quasi identiques noyait l'écran
+// vide plus qu'il ne l'aidait. Les 4 sujets fiscaux restent ceux testés
+// dans les 3 langues (le reste du set FR/darija/arabe sert toujours de banc
+// manuel pour la comparaison RAG, cf. test_langue.py) — ici on fait tourner
+// la langue d'un sujet à l'autre pour montrer le bilinguisme sans répéter
+// chaque question 3 fois. `rtl` sert uniquement à orienter le bouton — la
+// darija latine (arabizi) reste en alphabet latin, seul l'arabe classique
+// s'écrit de droite à gauche.
 const SUGGESTIONS = [
   { text: 'Quelles sociétés sont exclues du champ de l\'IS ?' },
-  { text: 'Quel est le taux de TVA sur les médicaments ?' },
-  { text: 'Quelles charges ne sont pas déductibles du résultat ?' },
-  { text: 'Comment fonctionne l\'auto-liquidation de la TVA ?' },
-  { text: 'Wach kayn sociétés li ma-khassinch ykhelsou IS?' },
   { text: 'Chhal howa taux dyal TVA 3la les médicaments?' },
-  { text: 'Chnou dyal les charges li ma-khassich thseb f résultat?' },
-  { text: 'Kifach khdama l\'auto-liquidation dyal TVA?' },
-  { text: 'ما هي الشركات المستثناة من الضريبة على الشركات؟', rtl: true },
-  { text: 'شحال هو سعر الضريبة على القيمة المضافة على الأدوية؟', rtl: true },
-  { text: 'شنو هي المصاريف غير القابلة للخصم من النتيجة؟', rtl: true },
+  { text: 'Quelles charges ne sont pas déductibles du résultat ?' },
   { text: 'كيفاش كيخدم نظام التسوية الذاتية ديال الضريبة على القيمة المضافة؟', rtl: true },
 ]
 

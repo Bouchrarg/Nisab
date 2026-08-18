@@ -14,12 +14,14 @@ export default function CalendarPage() {
   const [events, setEvents] = useState([])
   const [reconciliation, setReconciliation] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [filtre, setFiltre] = useState('toutes')
   const { activeDossier } = useDossier()
 
   useEffect(() => {
     if (!activeDossier) return
     setLoading(true)
     setReconciliation(null)
+    setFiltre('toutes')
     dossierFetch('/calendar/events')
       .then((r) => r.json())
       .then((d) => {
@@ -62,11 +64,43 @@ export default function CalendarPage() {
     await fetchReconciliation()
   }
 
+  // Purement d'affichage, recalculé depuis `events` (déjà chargé pour la
+  // liste) — pas de requête séparée pour ces compteurs.
+  const now = new Date()
+  const dans7Jours = new Date(now)
+  dans7Jours.setDate(now.getDate() + 7)
+  const dans30Jours = new Date(now)
+  dans30Jours.setDate(now.getDate() + 30)
+  const sous7j = events.filter((e) => {
+    const d = new Date(e.date)
+    return d >= now && d <= dans7Jours
+  }).length
+  // Rolling 30 jours, pas "le mois calendaire en cours" : mi-août, la
+  // prochaine échéance est en septembre et le mois calendaire actuel
+  // affichait 0 alors que la liste juste en dessous n'était pas vide —
+  // lu comme un bug plutôt que comme "rien avant fin août".
+  const sous30j = events.filter((e) => {
+    const d = new Date(e.date)
+    return d >= now && d <= dans30Jours
+  }).length
+
+  // Chips de filtre par catégorie d'impôt — mêmes compteurs que la liste,
+  // juste cliquables (même principe que les filtres de sévérité de
+  // l'Audit). Catégories dans l'ordre où elles apparaissent, pas triées :
+  // aucune n'est "plus importante" qu'une autre ici.
+  const categories = []
+  const byCategorie = {}
+  events.forEach((e) => {
+    const cat = e.category || 'Autre'
+    if (!(cat in byCategorie)) { categories.push(cat); byCategorie[cat] = 0 }
+    byCategorie[cat]++
+  })
+  const eventsAffiches = filtre === 'toutes' ? events : events.filter((e) => (e.category || 'Autre') === filtre)
+
   return (
     <div>
       <div className="section-header">
         <div>
-          <div className="section-title">Calendrier fiscal</div>
           <div className="section-sub">
             Échéances calculées d'après le CGI marocain, selon le régime IS/TVA du dossier « {activeDossier?.raison_sociale} ».
           </div>
@@ -82,6 +116,15 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      {/* Deux notions distinctes, souvent confondues au premier coup d'œil
+          car les deux se présentent en liste de lignes datées : ce qui est
+          déjà échu SANS trace de dépôt (passé, ReconciliationBanner) contre
+          ce qui reste à faire (futur, la liste plus bas). Un intitulé
+          au-dessus de chaque bloc, pas juste la couleur du bandeau, pour
+          que la distinction tienne même en lecture rapide. */}
+      {reconciliation?.echeances_manquantes?.length > 0 && (
+        <div className="calendar-section-label">Échues, sans déclaration</div>
+      )}
       <ReconciliationBanner data={reconciliation} onDeclarer={declarerEcheance} />
 
       {loading ? (
@@ -89,15 +132,60 @@ export default function CalendarPage() {
           <span className="spinner dark" style={{ width: 22, height: 22 }} />
         </div>
       ) : (
-        <div className="calendar-list">
+        <>
+          {events.length > 0 && (
+            <>
+              <div className="calendar-section-label">À venir</div>
+              <div className="calendar-kpi-row">
+                <div className={`calendar-kpi${sous7j > 0 ? ' is-urgent' : ''}`}>
+                  <div className="calendar-kpi-label">Échéances sous 7 jours</div>
+                  <div className="calendar-kpi-value">{sous7j}</div>
+                </div>
+                <div className="calendar-kpi">
+                  <div className="calendar-kpi-label">Échéances sous 30 jours</div>
+                  <div className="calendar-kpi-value">{sous30j}</div>
+                </div>
+              </div>
+            </>
+          )}
+
           {events.length === 0 ? (
             <div className="alert neutral">
               <div className="alert-dot" />Aucune échéance dans les 6 prochains mois.
             </div>
           ) : (
-            events.map((e, i) => <CalendarEvent key={i} e={e} />)
+            <>
+              {categories.length > 1 && (
+                <div className="filter-row">
+                  <button
+                    className={`filter-chip${filtre === 'toutes' ? ' is-active' : ''}`}
+                    onClick={() => setFiltre('toutes')}
+                  >
+                    Toutes ({events.length})
+                  </button>
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      className={`filter-chip${filtre === cat ? ' is-active' : ''}`}
+                      onClick={() => setFiltre(cat)}
+                    >
+                      {cat} ({byCategorie[cat]})
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="calendar-list">
+                <div className="calendar-list-head">
+                  <span className="calendar-list-head-date">Date</span>
+                  <span className="calendar-list-head-title">Échéance</span>
+                  <span className="calendar-list-head-tag">Impôt</span>
+                </div>
+                {eventsAffiches.map((e, i) => <CalendarEvent key={i} e={e} />)}
+              </div>
+            </>
           )}
-        </div>
+        </>
       )}
     </div>
   )

@@ -48,7 +48,6 @@ export default function DashboardPage({
       <div>
         <div className="section-header">
           <div>
-            <div className="section-title">Tableau de bord</div>
             <div className="section-sub">Conformité fiscale consolidée</div>
           </div>
         </div>
@@ -363,6 +362,11 @@ export default function DashboardPage({
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 340px',
+          // 'start' plutôt que le stretch par défaut d'une grille : sans ça,
+          // la carte "Prochaines échéances" (4 lignes courtes) s'étirait
+          // pour égaler la hauteur cumulée des DEUX cartes de la colonne de
+          // gauche (Scores + Indicateurs), laissant un grand vide en bas.
+          alignItems: 'start',
           gap: 16,
           marginTop: 16,
         }}

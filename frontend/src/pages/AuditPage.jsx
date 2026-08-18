@@ -3,10 +3,12 @@ import { RefreshCw, Search } from 'lucide-react'
 import FindingCard from '../components/audit/FindingCard'
 import { severityToCls } from '../utils/severity'
 
+// Pas de chip "Conforme" : `findings` ne contient que des anomalies
+// détectées (AlerteRisque) — aucune n'a de sévérité qui retombe sur
+// `conforme` (cf. severityToCls), le chip affichait donc toujours (0).
 const NIVEAUX = [
   { cls: 'critique', label: 'Critique' },
   { cls: 'vigilance', label: 'Modéré' },
-  { cls: 'conforme', label: 'Conforme' },
 ]
 
 // Date de la dernière analyse, en clair. Elle n'avait pas à être affichée
@@ -58,9 +60,8 @@ export default function AuditPage({
 
   return (
     <div>
-      <div className="section-header">
+      <div className="section-header" style={{ alignItems: 'center' }}>
         <div>
-          <div className="section-title">Rapport d'audit fiscal</div>
           <div className="section-sub">
             {jamaisLance ? (
               "Ce dossier n'a pas encore été analysé."

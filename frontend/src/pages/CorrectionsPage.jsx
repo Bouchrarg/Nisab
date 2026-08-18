@@ -121,9 +121,8 @@ export default function CorrectionsPage() {
 
   return (
     <div>
-      <div className="section-header">
+      <div className="section-header" style={{ alignItems: 'center' }}>
         <div>
-          <div className="section-title">Corrections proposées</div>
           <div className="section-sub">
             L'IA propose une écriture sourcée pour chaque anomalie ; rien ne part vers l'ERP sans votre validation.
           </div>

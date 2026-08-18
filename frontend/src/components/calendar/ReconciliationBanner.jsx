@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, FileWarning } from 'lucide-react'
+import { parseDate } from '../../utils/dates'
 
 /**
  * Obligations déclaratives échues sans trace de dépôt ni de paiement
@@ -16,6 +17,10 @@ import { ChevronDown, ChevronRight, FileWarning } from 'lucide-react'
  *    corpus versionné : elles ne doivent pas être présentées comme une
  *    citation vérifiée, contrairement à celles de l'audit ou de l'assistant.
  *
+ * Détail déplié : même gabarit .list-row/.list-date que la liste principale
+ * de CalendarPage, pas un <table> à part avec ses propres styles inline —
+ * ouvrir ce bandeau ne doit pas faire sauter vers un autre langage visuel.
+ *
  * `onDeclarer` (optionnel) : appelé avec la ligne manquante quand le cabinet
  * clique « Marquer comme déclaré ». Le composant ne connaît pas l'API — c'est
  * CalendarPage qui fait le POST et recharge la réconciliation — ce composant
@@ -25,6 +30,9 @@ export default function ReconciliationBanner({ data, onDeclarer }) {
   const [ouvert, setOuvert] = useState(false)
   const [enCours, setEnCours] = useState(null) // clé de la ligne en cours de déclaration
   const [erreur, setErreur] = useState(null)
+  // La fenêtre de rapprochement est glissante sur 12 mois (reconciliation.py)
+  // mais chevauche fréquemment deux années civiles — utile de filtrer.
+  const [anneeFiltre, setAnneeFiltre] = useState('toutes')
   if (!data) return null
 
   const manquantes = data.echeances_manquantes || []
@@ -55,76 +63,103 @@ export default function ReconciliationBanner({ data, onDeclarer }) {
     )
   }
 
-  const categories = Object.entries(data.par_categorie || {})
-    .sort((a, b) => b[1] - a[1])
-    .map(([nom, n]) => `${nom} (${n})`)
-    .join(' · ')
+  const categories = Object.entries(data.par_categorie || {}).sort((a, b) => b[1] - a[1])
 
+  const annees = [...new Set(manquantes.map((m) => new Date(m.date_echeance).getFullYear()))].sort()
+  const manquantesAffichees = anneeFiltre === 'toutes'
+    ? manquantes
+    : manquantes.filter((m) => new Date(m.date_echeance).getFullYear() === anneeFiltre)
+
+  // Le rouge reste confiné à ce bandeau (déjà l'exception à la couleur en
+  // petites touches partout ailleurs) — mais SEULEMENT sur la ligne
+  // résumé, pas sur tout le détail déplié. Un empilement de 40 lignes
+  // toutes teintées rose + boîte de date grise dessus donnait un gris/rouge
+  // sale sur une grande surface — le détail reprend le fond neutre de la
+  // liste principale (même .calendar-list), le rouge n'a plus besoin d'être
+  // répété ligne par ligne : la présence dans CETTE liste dit déjà "en retard".
   return (
-    <div className="alert critique" style={{ marginBottom: 16, flexDirection: 'column', alignItems: 'stretch' }}>
+    <div style={{ marginBottom: 16 }}>
       <div
-        style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}
+        className="alert critique"
+        style={{ cursor: 'pointer' }}
         onClick={() => setOuvert((o) => !o)}
       >
         <FileWarning size={14} style={{ flexShrink: 0, marginTop: 2 }} />
-        <div style={{ flex: 1 }}>
-          <strong>
-            {manquantes.length} obligation(s) échue(s) sans trace de dépôt ni de paiement
-          </strong>
-          <div style={{ fontSize: 12, marginTop: 3, opacity: 0.85 }}>{categories}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <strong>{manquantes.length} obligation(s) échue(s) sans trace de dépôt ni de paiement</strong>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
+            {categories.map(([nom, n]) => (
+              <span key={nom} className="critique-tag">{nom} ({n})</span>
+            ))}
+          </div>
         </div>
         {ouvert ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
       </div>
 
       {ouvert && (
-        <div style={{ marginTop: 12, borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: 10 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-            <thead>
-              <tr style={{ textAlign: 'left', color: 'var(--sourdine)' }}>
-                <th style={{ padding: '4px 8px 6px 0', fontWeight: 600 }}>Échéance</th>
-                <th style={{ padding: '4px 8px 6px 0', fontWeight: 600 }}>Obligation</th>
-                <th style={{ padding: '4px 8px 6px 0', fontWeight: 600 }}>Majoration encourue</th>
-                {onDeclarer && <th style={{ padding: '4px 0 6px 0', fontWeight: 600 }} />}
-              </tr>
-            </thead>
-            <tbody>
-              {manquantes.map((m, i) => {
-                const cle = `${m.categorie}|${m.periode}`
-                return (
-                  <tr key={i} style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                    <td className="mono" style={{ padding: '6px 8px 6px 0', whiteSpace: 'nowrap' }}>{m.date_echeance}</td>
-                    <td style={{ padding: '6px 8px 6px 0' }}>{m.titre}</td>
-                    <td style={{ padding: '6px 8px 6px 0', opacity: 0.85 }}>{m.penalite || '—'}</td>
-                    {onDeclarer && (
-                      <td style={{ padding: '6px 0', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          disabled={enCours === cle}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeclarer(m, cle)
-                          }}
-                        >
-                          {enCours === cle ? 'Envoi…' : 'Marquer comme déclaré'}
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-
-          {erreur && (
-            <div style={{ fontSize: 11.5, marginTop: 8, color: 'var(--critique, #C0281C)' }}>{erreur}</div>
+        <>
+          {annees.length > 1 && (
+            <div className="filter-row" style={{ margin: '12px 0 10px' }}>
+              <button
+                className={`filter-chip${anneeFiltre === 'toutes' ? ' is-active' : ''}`}
+                onClick={() => setAnneeFiltre('toutes')}
+              >
+                Toutes ({manquantes.length})
+              </button>
+              {annees.map((an) => (
+                <button
+                  key={an}
+                  className={`filter-chip${anneeFiltre === an ? ' is-active' : ''}`}
+                  onClick={() => setAnneeFiltre(an)}
+                >
+                  {an} ({manquantes.filter((m) => new Date(m.date_echeance).getFullYear() === an).length})
+                </button>
+              ))}
+            </div>
           )}
+          <div className="calendar-list" style={{ borderTop: annees.length > 1 ? undefined : 'none' }}>
+            {manquantesAffichees.map((m, i) => {
+              const cle = `${m.categorie}|${m.periode}`
+              const dt = parseDate(m.date_echeance)
+              return (
+                <div key={i} className="list-row">
+                  {dt && (
+                    <div className="list-date">
+                      <div className="list-date-day">{dt.day}</div>
+                      <div className="list-date-month">{dt.month}</div>
+                    </div>
+                  )}
+                  <div className="list-body">
+                    <div className="list-title">{m.titre}</div>
+                    {m.penalite && <div className="list-sub">{m.penalite}</div>}
+                  </div>
+                  {onDeclarer && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={enCours === cle}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeclarer(m, cle)
+                      }}
+                    >
+                      {enCours === cle ? 'Envoi…' : 'Marquer comme déclaré'}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
 
-          <div style={{ fontSize: 11.5, marginTop: 10, opacity: 0.8, lineHeight: 1.5 }}>
-            {data.avertissement} Une échéance marquée « déclaré » par erreur peut être
-            corrigée : dites-le au comptable qui gère le dossier.
+            {erreur && (
+              <div style={{ fontSize: 11.5, padding: '8px 18px 0', color: 'var(--critique)' }}>{erreur}</div>
+            )}
+
+            <div style={{ fontSize: 11.5, padding: '10px 18px', color: 'var(--ardoise)', lineHeight: 1.5 }}>
+              {data.avertissement} Une échéance marquée « déclaré » par erreur peut être
+              corrigée : dites-le au comptable qui gère le dossier.
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   )

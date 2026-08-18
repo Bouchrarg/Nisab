@@ -436,7 +436,7 @@ function AppShell() {
           onOpenDossier={openDossier}
         />
 
-        <div className="page">
+        <div className={`page${view === 'chat' ? ' page-flush' : ''}`}>
           {view === 'overview' && (
             <CabinetOverviewPage onOpenDossier={openDossier} onCriticalAlertsChange={setCriticalAlerts} />
           )}

@@ -94,7 +94,6 @@ export default function PlatformOverviewPage({ onNavigate }) {
     <div>
       <div className="section-header">
         <div>
-          <div className="section-title">Vue d'ensemble de la plateforme</div>
           <div className="section-sub">
             Tous les cabinets et PME confondus — organisations, utilisateurs, dossiers et risques suivis par Nisab.
           </div>

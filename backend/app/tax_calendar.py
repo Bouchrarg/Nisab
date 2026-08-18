@@ -362,7 +362,13 @@ def get_calendar_events(
                 "urgency": _urgency(due_cnss, today),
                 "penalty": "Pénalité de 3% le 1er mois de retard, puis 1% par mois supplémentaire",
                 "legal_source": "CNSS",
-                "legal_article": "Réglementation CNSS (référence légale précise non vérifiée — voir avertissement en tête de fichier)",
+                # Court, même gabarit que les autres `legal_article` (ex.
+                # "Article 110 du CGI") : le disclaimer "non vérifié" vit déjà
+                # dans le bandeau d'info de CalendarPage ET dans la texture
+                # visuelle du chip (bordure pointillée, cf. CalendarEvent.jsx)
+                # — le répéter en toutes lettres ici ne faisait que produire
+                # une pastille 5x plus large que ses voisines sur la même page.
+                "legal_article": "Réglementation CNSS",
                 "doc_version": "DAMANCOM",
             })
     for (yr, mo) in months_to_cover:

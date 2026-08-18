@@ -73,9 +73,8 @@ export default function VeillePage() {
 
   return (
     <div>
-      <div className="section-header">
+      <div className="section-header" style={{ alignItems: 'center' }}>
         <div>
-          <div className="section-title">Veille fiscale</div>
           <div className="section-sub">
             Évolutions du corpus portant sur des articles déjà utilisés pour ce dossier.
           </div>

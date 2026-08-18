@@ -142,9 +142,8 @@ export default function SimulationPage({ simulation, history, onRunSimulation, o
 
   return (
     <div>
-      <div className="section-header">
+      <div className="section-header" style={{ alignItems: 'center' }}>
         <div>
-          <div className="section-title">Simulation de contrôle</div>
           <div className="section-sub">
             Rejoue les points qu'un inspecteur DGI examinerait, à partir des alertes actives du dossier.
           </div>

@@ -29,7 +29,8 @@ from app.auth import (
     verify_password,
 )
 from app.db import get_db
-from app.models import Organisation, RoleUtilisateur, TypeOrganisation, Utilisateur
+from app.db_session import get_tenant_db
+from app.models import Acces, Dossier, Organisation, RoleUtilisateur, TypeOrganisation, Utilisateur
 
 router = APIRouter(prefix="/auth", tags=["Authentification"])
 
@@ -66,6 +67,13 @@ class UserResponse(BaseModel):
     role: str
     organisation_id: str
     organisation_nom: str
+    created_at: str
+
+
+class MesAccesInfo(BaseModel):
+    dossier_id: str
+    raison_sociale: str
+    niveau_droit: str
 
 
 # ── endpoints ────────────────────────────────────────────────────────────
@@ -148,7 +156,32 @@ def me(current: CurrentUser = Depends(get_current_user), db: Session = Depends(g
         role=user.role.value,
         organisation_id=str(user.organisation_id),
         organisation_nom=org.nom if org else "",
+        created_at=user.created_at.isoformat(),
     )
+
+
+@router.get("/me/acces", response_model=list[MesAccesInfo])
+def mes_acces(current: CurrentUser = Depends(get_current_user), db: Session = Depends(get_tenant_db)):
+    """
+    Les dossiers accessibles au compte courant, pour que ProfilePage les
+    affiche sans passer par un admin. get_tenant_db (pas get_db) : Acces et
+    Dossier sont protégées par RLS, cf. list_membres (routes_invitations.py)
+    qui a le même besoin côté admin.
+
+    Un admin_cabinet n'a typiquement AUCUNE ligne Acces explicite — son accès
+    à tous les dossiers de l'organisation vient de son rôle (tenant_guard.py),
+    pas de cette table. Liste vide pour ce rôle n'est donc pas une anomalie ;
+    le frontend l'affiche différemment (cf. ProfilePage.jsx).
+    """
+    rows = db.execute(
+        select(Acces, Dossier)
+        .join(Dossier, Dossier.id == Acces.dossier_id)
+        .where(Acces.utilisateur_id == uuid.UUID(current.id))
+    ).all()
+    return [
+        MesAccesInfo(dossier_id=str(d.id), raison_sociale=d.raison_sociale, niveau_droit=a.niveau_droit.value)
+        for a, d in rows
+    ]
 
 
 class UpdateProfileRequest(BaseModel):
@@ -175,6 +208,7 @@ def update_me(req: UpdateProfileRequest, current: CurrentUser = Depends(get_curr
         role=user.role.value,
         organisation_id=str(user.organisation_id),
         organisation_nom=org.nom if org else "",
+        created_at=user.created_at.isoformat(),
     )
 
 

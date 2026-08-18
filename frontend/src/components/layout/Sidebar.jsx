@@ -34,9 +34,11 @@ export default function Sidebar({ view, onChangeView, backendStatus, role }) {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sync-status">
+        <div
+          className="sync-status"
+          title={backendStatus === 'ok' ? 'API connectée' : backendStatus === 'loading' ? 'Connexion…' : 'API hors ligne'}
+        >
           <span className={`sync-dot${backendStatus === 'offline' ? ' offline' : backendStatus === 'loading' ? ' loading' : ''}`} />
-          {backendStatus === 'ok' ? 'API connectée' : backendStatus === 'loading' ? 'Connexion…' : 'API hors ligne'}
         </div>
       </div>
     </aside>

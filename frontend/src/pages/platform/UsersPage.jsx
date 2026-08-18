@@ -149,9 +149,8 @@ export default function UsersPage() {
 
   return (
     <div>
-      <div className="section-header">
+      <div className="section-header" style={{ alignItems: 'center' }}>
         <div>
-          <div className="section-title">Utilisateurs</div>
           <div className="section-sub">Tous les comptes de la plateforme, cabinets et PME confondus ({total} au total).</div>
         </div>
         <button className="btn btn-primary btn-sm" onClick={openInvite}>

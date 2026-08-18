@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { Copy, Plus, Trash2, Ban, RotateCcw } from 'lucide-react'
 import { apiFetch } from '../config/api'
 import { useDossier } from '../context/DossierContext'
+import Badge from '../components/ui/Badge'
 
 const ROLE_LABELS = { collaborateur: 'Collaborateur', dirigeant_pme: 'Dirigeant PME', admin_cabinet: 'Admin cabinet' }
 const STATUT_LABELS = { en_attente: 'En attente', acceptee: 'Acceptée', revoquee: 'Révoquée' }
@@ -135,11 +136,17 @@ export default function InvitationsPage() {
     }
   }
 
+  // Historique complet gardé (une invitation acceptée reste dans la liste :
+  // la cacher a fait disparaître des lignes que le cabinet s'attendait à
+  // retrouver). Seule différence pour une ligne acceptée : plus discrète
+  // (elle est déjà, en vrai, dans "Membres" juste au-dessus) et sans
+  // colonne d'action puisqu'il n'y a plus rien à faire dessus.
+  const initiale = (str) => (str || '?').trim().charAt(0).toUpperCase()
+
   return (
     <div>
       <div className="section-header">
         <div>
-          <div className="section-title">Équipe</div>
           <div className="section-sub">Invitez des collaborateurs ou des dirigeants PME dans votre cabinet.</div>
         </div>
       </div>
@@ -217,7 +224,12 @@ export default function InvitationsPage() {
               {membres.map((m) => (
                 <Fragment key={m.id}>
                   <tr>
-                    <td>{m.email}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="member-avatar">{initiale(m.email)}</span>
+                        {m.email}
+                      </div>
+                    </td>
                     <td>{ROLE_LABELS[m.role] || m.role}</td>
                     <td style={{ fontSize: 11.5 }}>
                       {m.role === 'admin_cabinet' ? (
@@ -228,7 +240,7 @@ export default function InvitationsPage() {
                         m.acces.map((a) => `${a.raison_sociale} (${NIVEAU_LABELS[a.niveau_droit] || a.niveau_droit})`).join(', ')
                       )}
                     </td>
-                    <td><span className={`badge ${m.actif ? 'conforme' : 'critique'}`}>{m.actif ? 'Actif' : 'Désactivé'}</span></td>
+                    <td><Badge cls={m.actif ? 'conforme' : 'critique'} small>{m.actif ? 'Actif' : 'Désactivé'}</Badge></td>
                     <td>{new Date(m.created_at).toLocaleDateString('fr-FR')}</td>
                     <td style={{ display: 'flex', gap: 6 }}>
                       {m.role !== 'admin_cabinet' && (
@@ -303,11 +315,16 @@ export default function InvitationsPage() {
             </thead>
             <tbody>
               {invitations.map((i) => (
-                <tr key={i.id}>
-                  <td>{i.email}</td>
+                <tr key={i.id} style={i.statut === 'acceptee' ? { opacity: 0.55 } : undefined}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="member-avatar">{initiale(i.email)}</span>
+                      {i.email}
+                    </div>
+                  </td>
                   <td>{ROLE_LABELS[i.role] || i.role}</td>
                   <td style={{ fontSize: 11.5, color: 'var(--sourdine)' }}>{NIVEAU_LABELS[i.niveau_droit] || i.niveau_droit}</td>
-                  <td><span className={`badge ${i.statut === 'acceptee' ? 'conforme' : i.statut === 'revoquee' ? 'critique' : 'vigilance'}`}>{STATUT_LABELS[i.statut]}</span></td>
+                  <td><Badge cls={i.statut === 'acceptee' ? 'conforme' : i.statut === 'revoquee' ? 'critique' : 'vigilance'} small>{STATUT_LABELS[i.statut]}</Badge></td>
                   <td>{new Date(i.expires_at).toLocaleDateString('fr-FR')}</td>
                   <td>
                     {i.statut === 'en_attente' && (

@@ -82,7 +82,6 @@ export default function OrganisationsPage() {
     <div>
       <div className="section-header">
         <div>
-          <div className="section-title">Organisations</div>
           <div className="section-sub">Cabinets comptables et PME clientes, tous tenants confondus ({total} au total).</div>
         </div>
       </div>

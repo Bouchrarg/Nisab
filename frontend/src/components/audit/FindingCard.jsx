@@ -96,8 +96,13 @@ export default function FindingCard({ f, proposition, onProposer, onVoirProposit
           {open && (
             <div className="finding-body">
 
+              {/* Blanc + bordure, pas --surface-2 : le gris attirait trop
+                  l'œil sur un simple encart de données factuelles — même
+                  traitement que les autres petits encarts de l'app (juste
+                  une bordure fait déjà la séparation avec le fond blanc de
+                  la carte, pas besoin d'un fond plus sombre en plus). */}
               {(f.invoice || f.partner || f.date) && (
-                <div style={{ background: 'var(--toile)', border: '1px solid var(--bordure)', borderRadius: 6, padding: '10px 14px', marginBottom: 12 }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--bordure)', borderRadius: 6, padding: '10px 14px', marginBottom: 12 }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--sourdine)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
                     Écriture comptable auditée
                   </div>
@@ -258,12 +263,14 @@ export default function FindingCard({ f, proposition, onProposer, onVoirProposit
                 </div>
               )}
 
+              {/* Entre les deux : pas la boîte pleine teintée d'origine (trop
+                  lourd, une boîte bordée de plus), mais pas non plus un texte
+                  plat comme Constat (elle doit rester "un peu en valeur") —
+                  un simple filet d'accent à gauche, comme le bloc ROI du
+                  Tableau de bord ("identité portée par un filet, pas un
+                  aplat"). Aucun fond, juste une bordure. */}
               {f.recommendation && (
-                <div style={{
-                  background: 'color-mix(in srgb, var(--seuil) 6%, transparent)',
-                  border: '1px solid color-mix(in srgb, var(--seuil) 20%, transparent)',
-                  borderRadius: 6, padding: '8px 12px',
-                }}>
+                <div style={{ marginBottom: 10, borderLeft: '3px solid var(--seuil)', paddingLeft: 12 }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--seuil)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
                     Recommandation
                   </div>
