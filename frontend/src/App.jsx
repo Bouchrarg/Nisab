@@ -24,7 +24,10 @@ import { useDossier } from './context/DossierContext'
 
 // Vues qui ont besoin d'un dossier actif pour avoir un sens.
 const DOSSIER_SCOPED_VIEWS = new Set(['dashboard', 'audit', 'corrections', 'simulation', 'calendar', 'veille'])
-const COPILOT_VIEWS = new Set(['dashboard', 'audit', 'corrections', 'simulation', 'calendar', 'chat', 'odoo', 'veille'])
+// 'chat' exclu volontairement : cette vue EST déjà un assistant plein écran
+// (ChatPage) — le copilote flottant par-dessus affichait deux chats en même
+// temps sur le même écran.
+const COPILOT_VIEWS = new Set(['dashboard', 'audit', 'corrections', 'simulation', 'calendar', 'odoo', 'veille'])
 
 // L'audit reste synchrone côté backend (2 appels LLM séquentiels par
 // écriture, plus retries/fallback OpenRouter en cas de rate limit) : pour
