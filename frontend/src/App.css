@@ -1140,10 +1140,15 @@
 .form-input:focus {
   outline: none;
   border-color: var(--seuil);
-  box-shadow: 0 0 0 3px rgba(36,81,214,0.12);
+  /* Anneau de focus bordeaux — restait câblé sur l'ancien bleu --seuil
+     pré-Direction-D (rgba(36,81,214,...)) sur TOUS les champs de formulaire
+     de l'app (jamais retouché lors du portage des pages individuelles),
+     jusqu'à ce que ce passage d'alignement des dashboards de rôles le
+     trouve. */
+  box-shadow: 0 0 0 3px var(--seuil-soft);
 }
 
-.form-input::placeholder { color: #9ca3af; }
+.form-input::placeholder { color: var(--sourdine); }
 
 /* ═══ ALERTS — Direction D : texte toujours en encre neutre, seul le carré
    porte la couleur (même principe que .badge). ═══════════════════════ */
@@ -1207,7 +1212,7 @@
 .btn-ghost { background: transparent; color: var(--ardoise); }
 .btn-ghost:hover:not(:disabled) { background: var(--toile); }
 
-.btn-danger { background: var(--critique); color: #fff; }
+.btn-danger { background: var(--critique); color: var(--accent-ink); }
 .btn-danger:hover:not(:disabled) { background: #a01f15; }
 
 .btn-sm { padding: 6px 12px; font-size: 12px; }
@@ -1436,7 +1441,7 @@
   width: 16px; height: 16px;
   border-radius: 50%;
   background: var(--critique);
-  color: #fff;
+  color: var(--accent-ink);
   font-size: 9px;
   font-weight: 700;
   display: flex;
@@ -2101,7 +2106,7 @@
   justify-content: center;
   gap: 6px;
   text-align: center;
-  color: var(--ardoise, #667);
+  color: var(--ardoise);
 }
 
 /* ── Correctif : vue d'ensemble cabinet (cartes dossiers) ────────────── */
@@ -2271,23 +2276,35 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 24px;
-  background: #fff;
-  border-bottom: 1px solid var(--bordure, #e5e7eb);
+  /* Était #fff + fallback var(--bordure, #e5e7eb) : blanc pur et gris
+     pré-Direction-D codés en dur, jamais mis à jour quand l'espace
+     admin_plateforme a été construit (ad1760f) après le reste de la
+     refonte — visiblement plus froid/blanc que .topbar (var(--surface),
+     le crème #fffbf4) juste à côté dans les autres shells. */
+  background: var(--surface);
+  border-bottom: 1px solid var(--bordure);
   flex-shrink: 0;
 }
-.platform-admin-header h1 { font-size: 15px; margin: 0; }
+.platform-admin-header h1 { font-family: var(--font-display); font-size: 17px; font-weight: 600; color: var(--encre); margin: 0; }
 .platform-admin-body { flex: 1; overflow-y: auto; padding: 24px; }
 .platform-admin-body-inner { max-width: 1280px; margin: 0 auto; }
 
 /* Sidebar admin_plateforme : même look que .sidebar mais nav propre
-   (Vue d'ensemble / Organisations / Utilisateurs / Corpus). */
+   (Vue d'ensemble / Organisations / Utilisateurs / Corpus).
+   Était encore sur `background: var(--encre)` + une bordure blanche à
+   6% d'opacité — la coquille SOMBRE d'origine que Direction D a
+   explicitement remplacée par une coquille claire partout ailleurs (cf.
+   commentaire sur .sidebar juste au-dessus). `.nav-item` (partagé) est
+   coloré en --ardoise/--encre, pensé pour un fond clair : posé sur ce
+   fond quasi noir, le texte de nav devenait presque illisible. */
 .platform-admin-sidebar {
   width: 212px;
   flex-shrink: 0;
-  background: var(--encre);
+  background: var(--surface-2);
+  color: var(--encre);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  border-right: 2px solid var(--encre);
 }
 
 /* ── Correctif : état vide inline pour une vue dossier sans dossier actif */
@@ -2297,7 +2314,7 @@
   align-items: center;
   gap: 10px;
   padding: 60px 20px;
-  color: var(--ardoise, #667);
+  color: var(--ardoise);
   text-align: center;
 }
 

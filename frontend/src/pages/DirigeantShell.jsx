@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, LogOut, ShieldQuestion, UserCircle } from 'lucide-react'
+import { ArrowLeft, Clock, LogOut, ShieldQuestion, UserCircle } from 'lucide-react'
 import { apiFetch } from '../config/api'
 import { useAuth } from '../context/AuthContext'
 import { useDossier } from '../context/DossierContext'
+import Badge from '../components/ui/Badge'
 import ProfilePage from './ProfilePage'
 
 // ── Feu tricolore : dérivé de dashboard/summary, sans rien recalculer ──
@@ -29,10 +30,10 @@ function feuTricolore(summary) {
 }
 
 const FEU_CONFIG = {
-  rouge: { label: 'Attention requise', cls: 'critique', Icon: AlertTriangle },
-  orange: { label: 'À surveiller', cls: 'vigilance', Icon: AlertTriangle },
-  vert: { label: 'Situation saine', cls: 'conforme', Icon: CheckCircle2 },
-  gris: { label: 'Indéterminé', cls: 'neutral', Icon: ShieldQuestion },
+  rouge: { label: 'Attention requise', cls: 'critique' },
+  orange: { label: 'À surveiller', cls: 'vigilance' },
+  vert: { label: 'Situation saine', cls: 'conforme' },
+  gris: { label: 'Indéterminé', cls: 'neutral' },
 }
 
 function DossierFeuCard({ dossier }) {
@@ -65,19 +66,21 @@ function DossierFeuCard({ dossier }) {
   }, [dossier.id])
 
   const feu = feuTricolore(summary)
-  const { label, cls, Icon } = FEU_CONFIG[feu]
+  const { label, cls } = FEU_CONFIG[feu]
 
   return (
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-body">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--encre)' }}>{dossier.raison_sociale}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, color: 'var(--encre)' }}>{dossier.raison_sociale}</div>
             <div style={{ fontSize: 11.5, color: 'var(--sourdine)' }}>{dossier.secteur_activite || 'Secteur non renseigné'}</div>
           </div>
-          <span className={`badge ${cls}`} style={{ fontSize: 12, padding: '6px 12px' }}>
-            <Icon size={13} /> {label}
-          </span>
+          {/* Composant Badge partagé (carré + texte neutre) — un span
+              `badge ${cls}` fait main sans `.badge-dot` ne colore RIEN sous
+              Direction D (le sélecteur CSS cible `.badge.<cls> .badge-dot`),
+              même bug que celui trouvé et corrigé sur InvitationsPage. */}
+          <Badge cls={cls}>{label}</Badge>
         </div>
 
         {loading ? (
@@ -124,15 +127,12 @@ export default function DirigeantShell() {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '16px 24px', background: 'var(--surface)', borderBottom: '1px solid var(--bordure)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 8, background: 'var(--seuil)', color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15,
-          }}>N</div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--encre)' }}>Nisab</div>
-            <div style={{ fontSize: 10.5, color: 'var(--sourdine)' }}>Espace dirigeant</div>
-          </div>
+        {/* Direction D retire le pictogramme de marque partout (Sidebar.jsx
+            .brand-mark { display:none }) — resté ici sous forme d'un carré
+            "N" codé en dur, jamais mis à jour depuis. */}
+        <div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, fontWeight: 600, color: 'var(--encre)', letterSpacing: '-0.01em' }}>Nisab</div>
+          <div style={{ fontSize: 10.5, color: 'var(--sourdine)' }}>Espace dirigeant</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
@@ -164,7 +164,7 @@ export default function DirigeantShell() {
         ) : (
           <>
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 19, fontWeight: 700, color: 'var(--encre)' }}>Votre situation fiscale</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, color: 'var(--encre)' }}>Votre situation fiscale</div>
               <div style={{ fontSize: 13, color: 'var(--sourdine)' }}>
                 Vue d'ensemble simplifiée — pour le détail, votre cabinet comptable reste votre interlocuteur.
               </div>

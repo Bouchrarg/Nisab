@@ -510,7 +510,7 @@ export default function AdminPage() {
                     {articles.map((a) => (
                       <tr
                         key={a.id}
-                        style={{ borderBottom: '1px solid var(--bordure)', cursor: 'pointer', background: activeArticle?.id === a.id ? 'var(--surface-2, #f8f9fa)' : 'transparent' }}
+                        style={{ borderBottom: '1px solid var(--bordure)', cursor: 'pointer', background: activeArticle?.id === a.id ? 'var(--surface-2)' : 'transparent' }}
                         onClick={() => openArticle(a.id)}
                       >
                         <td style={{ padding: '6px 8px' }} onClick={(e) => e.stopPropagation()}>

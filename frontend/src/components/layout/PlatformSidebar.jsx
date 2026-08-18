@@ -32,9 +32,13 @@ export default function PlatformSidebar({ view, onChangeView, backendStatus }) {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sync-status">
+        {/* Aligné sur Sidebar.jsx (cabinet) : le point coloré porte déjà
+            l'info, le texte passe en `title` plutôt qu'affiché en dur. */}
+        <div
+          className="sync-status"
+          title={backendStatus === 'ok' ? 'API connectée' : backendStatus === 'loading' ? 'Connexion…' : 'API hors ligne'}
+        >
           <span className={`sync-dot${backendStatus === 'offline' ? ' offline' : backendStatus === 'loading' ? ' loading' : ''}`} />
-          {backendStatus === 'ok' ? 'API connectée' : backendStatus === 'loading' ? 'Connexion…' : 'API hors ligne'}
         </div>
       </div>
     </aside>

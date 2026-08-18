@@ -253,13 +253,10 @@ export default function UsersPage() {
                   <tr key={u.id} style={{ borderBottom: '1px solid var(--bordure)' }}>
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{
-                          width: 28, height: 28, borderRadius: '50%', background: 'var(--seuil-soft)',
-                          color: 'var(--seuil)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 11, fontWeight: 700, flexShrink: 0,
-                        }}>
-                          {initials(u.nom_complet, u.email)}
-                        </div>
+                        {/* .member-avatar : même repère carré que InvitationsPage
+                            (App.css:2397) — c'était encore un rond ici,
+                            jamais aligné quand Équipe l'a reçu le 18/08. */}
+                        <span className="member-avatar">{initials(u.nom_complet, u.email)}</span>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontWeight: 600, color: 'var(--encre)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {u.nom_complet || '(sans nom)'}
