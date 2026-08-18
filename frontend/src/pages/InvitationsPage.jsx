@@ -214,7 +214,7 @@ export default function InvitationsPage() {
       ) : (
         <>
           <h3 style={{ fontSize: 13, margin: '24px 0 8px' }}>Membres (comptes actifs)</h3>
-          <table className="invitations-table">
+          <table className="data-table">
             <thead>
               <tr>
                 <th>Email</th><th>Rôle</th><th>Dossiers assignés</th><th>Statut</th><th>Membre depuis</th><th></th>
@@ -307,7 +307,7 @@ export default function InvitationsPage() {
           </table>
 
           <h3 style={{ fontSize: 13, margin: '24px 0 8px' }}>Invitations envoyées</h3>
-          <table className="invitations-table">
+          <table className="data-table">
             <thead>
               <tr>
                 <th>Email</th><th>Rôle</th><th>Niveau</th><th>Statut</th><th>Expire le</th><th></th>

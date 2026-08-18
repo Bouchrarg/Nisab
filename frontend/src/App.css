@@ -230,16 +230,50 @@
 }
 
 /* ═══ SYNTHÈSE DU CABINET ════════════════════════════════════════════
-   Carte neutre (pas de filet ni de fond coloré — le jugement est déjà dans
-   les mots, la couleur n'a rien à ajouter ici) : étiquette, phrase de
-   synthèse, méta discrète. Largeur du titre bridée pour rester lisible
-   comme du texte, pas comme une bannière pleine largeur. */
+   Option A retenue sur maquette (3 couleurs pleines essayées et rejetées
+   avant ça, cf. historique git) : fond clair inchangé, différenciation par
+   la TYPOGRAPHIE et une touche de bordeaux localisée — jamais un aplat.
+   Bordure légèrement teintée (color-mix, pas --bordure plat), eyebrow en
+   couleur d'accent, médaillon-initiale à côté de la salutation, et le
+   chiffre-clé de la phrase sorti en plus grand + bordeaux dans le texte.
+   Un CTA, puis un mini sommaire en rangée de puces séparée, ont été
+   essayés pour donner accès rapide à Échéances/Veille/Dossiers plus bas
+   sur la page — les deux rejetés ("où sont posés" + "trop présent") et
+   retirés complètement : la synthèse reste un message pur, pas de
+   navigation ajoutée. On scrolle, comme avant. */
 .cabinet-hero {
   background: var(--surface);
-  border: 1px solid var(--bordure);
+  border: 1.5px solid color-mix(in oklch, var(--seuil) 35%, var(--bordure));
   border-radius: var(--radius-card);
-  padding: 16px 20px;
+  padding: 18px 22px;
   margin-bottom: 18px;
+  box-shadow: var(--shadow-entity);
+}
+.cabinet-hero-greeting-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.cabinet-hero-medal {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--seuil);
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.cabinet-hero-greeting {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--encre);
 }
 .cabinet-hero-eyebrow {
   font-family: var(--font-mono);
@@ -247,16 +281,21 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--sourdine);
+  color: var(--seuil);
   margin-bottom: 6px;
 }
 .cabinet-hero-headline {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 21px;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.3;
   color: var(--encre);
   max-width: 620px;
+}
+.cabinet-hero-headline .num {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--seuil);
 }
 .cabinet-hero-meta {
   font-size: 11.5px;
@@ -1149,6 +1188,7 @@
 }
 
 .form-input::placeholder { color: var(--sourdine); }
+.form-input:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* ═══ ALERTS — Direction D : texte toujours en encre neutre, seul le carré
    porte la couleur (même principe que .badge). ═══════════════════════ */
@@ -1202,6 +1242,7 @@
 }
 
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
 
 .btn-primary { background: var(--seuil); color: var(--accent-ink); }
 .btn-primary:hover:not(:disabled) { background: var(--seuil-dark); }
@@ -1363,6 +1404,18 @@
   margin-bottom: 16px;
 }
 
+/* Fond teinté par sévérité (alpha ~0.1, tokens *-soft déjà utilisés pour
+   les badges) — demandé pour que ce bloc précis se distingue au premier
+   coup d'œil, contrairement au reste de l'app où le statut ne passe que
+   par un petit carré (cf. commentaire sur .dossier-card). C'est le SEUL
+   bloc de l'app à faire cette exception, volontairement : c'est le résumé
+   qu'un dirigeant/associé regarde en premier en ouvrant un dossier. La
+   bordure reprend la couleur pleine (pas la version soft) pour que le
+   contour reste net sur le fond teinté. */
+.exec-summary-card--conforme  { background: var(--conforme-soft); border-color: var(--conforme); }
+.exec-summary-card--vigilance { background: var(--vigilance-soft); border-color: var(--vigilance); }
+.exec-summary-card--critique  { background: var(--critique-soft); border-color: var(--critique); }
+
 .exec-summary-card--conforme  .exec-summary-label { color: var(--conforme); }
 .exec-summary-card--vigilance .exec-summary-label { color: var(--vigilance); }
 .exec-summary-card--critique  .exec-summary-label { color: var(--critique); }
@@ -1375,21 +1428,28 @@
   min-width: 0;
 }
 
-.exec-summary-score-box {
-  flex-shrink: 0;
+/* Anneau circulaire (composant GaugeRing) — remplace l'ancien carré plein
+   `.exec-summary-score-box`. Le score reste au centre, en encre neutre : la
+   couleur passe par l'anneau (et maintenant aussi par le fond de la carte
+   ci-dessus), pas par le chiffre lui-même. */
+.gauge-ring { position: relative; flex-shrink: 0; }
+.gauge-ring svg { display: block; }
+.gauge-ring-track { stroke: var(--bordure); }
+.gauge-ring-fill { transition: stroke-dashoffset 0.4s ease; }
+.gauge-ring-fill.conforme  { stroke: var(--conforme); }
+.gauge-ring-fill.vigilance { stroke: var(--vigilance); }
+.gauge-ring-fill.critique  { stroke: var(--critique); }
+.gauge-ring-value {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 58px;
-  height: 58px;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 24px;
-  color: var(--accent-ink);
+  font-size: 19px;
+  color: var(--encre);
 }
-.exec-summary-score-box.conforme  { background: var(--conforme); }
-.exec-summary-score-box.vigilance { background: var(--vigilance); }
-.exec-summary-score-box.critique  { background: var(--critique); }
 
 .exec-summary-text { flex: 1; min-width: 0; }
 
@@ -1416,7 +1476,10 @@
 }
 .exec-summary-urgency strong { color: var(--encre); }
 
-.exec-summary-cta {
+/* Générique — était `.exec-summary-cta`, réutilisé tel quel par
+   .cabinet-hero (même besoin : un bouton pilule à droite d'un bloc de
+   synthèse) plutôt que dupliqué sous un 2e nom. */
+.hero-cta {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1432,7 +1495,7 @@
   transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
-.exec-summary-cta:hover { background: var(--encre); color: var(--toile); border-color: var(--encre); }
+.hero-cta:hover { background: var(--encre); color: var(--toile); border-color: var(--encre); }
 
 /* ═══ NOTIFICATION BELL PANEL ════════════════════════════════════════ */
 .notif-badge {
@@ -1969,82 +2032,313 @@
 .copilot-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 
-/* ── Écran d'authentification — encore "Phase 2" jusqu'ici : jamais touché
-   depuis la refonte Direction D. Fond gris générique sur une variable
-   (--fond) qui n'existe nulle part dans index.css, donc TOUJOURS repliée
-   sur le gris de secours #f5f6f8 — une page à part du reste du produit
-   avant même d'y toucher. Repris sur les mêmes tokens que le brand
-   sidebar (.brand-name) plutôt qu'inventés pour l'occasion. ──────────── */
+/* ── Écran d'authentification ────────────────────────────────────────
+   `.auth-shell` reste partagé par 3 usages : LoginPage, AcceptInvitePage
+   (les deux sur la DNA landing, `.auth-split`/`.auth-aside`/`.auth-panel`
+   plus bas) et le spinner de chargement (App.jsx, qui n'utilise QUE
+   `.auth-shell` — d'où son style minimal ici plutôt que dans la section
+   landing). `.auth-card`/`.auth-subtitle`/`.auth-error` (l'ancienne carte
+   bespoke bordeaux/crème, pré-audit) supprimées le 18/08 : plus aucun
+   consommateur depuis le portage d'AcceptInvitePage.
+   `overflow-y`/`align-items: safe center` : #root a `overflow:hidden`
+   (index.css) — sans ça, un contenu plus haut que le viewport (mode
+   inscription sur petit écran) serait tronqué sans possibilité de
+   scroller. `safe center` évite le piège classique où un centrage
+   flex+scroll rend le haut du contenu inatteignable. ────────────────── */
 .auth-shell {
   min-height: 100vh;
+  height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: safe center;
+  justify-content: safe center;
+  overflow-y: auto;
   background: var(--toile);
 }
-.auth-card {
-  width: 100%;
-  max-width: 380px;
-  background: var(--surface);
-  border: 1px solid var(--bordure);
-  border-top: 4px solid var(--seuil);
-  border-radius: var(--radius-card);
-  padding: 36px 32px 32px;
-  box-shadow: var(--shadow-entity);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.auth-card h1 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 26px;
-  font-weight: 600;
-  color: var(--encre);
-  letter-spacing: -0.01em;
-}
-.auth-subtitle { margin: 0 0 6px; color: var(--sourdine); font-size: 13px; }
-.auth-card label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 500; color: var(--ardoise); }
-.auth-card input, .auth-card select {
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--bordure);
-  font-size: 14px;
-  font-family: var(--font-sans);
-  color: var(--encre);
-  background: var(--surface);
-  transition: border-color 0.15s;
-}
-.auth-card input:focus, .auth-card select:focus { outline: none; border-color: var(--seuil); }
-.auth-card button[type="submit"] {
-  margin-top: 6px;
-  padding: 11px;
-  border-radius: var(--radius-full);
-  border: none;
-  background: var(--seuil);
-  color: var(--accent-ink);
-  font-weight: 600;
-  font-size: 13.5px;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.auth-card button[type="submit"]:hover:not(:disabled) { background: var(--seuil-dark); }
-.auth-card button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
-.auth-error {
-  background: var(--critique-soft);
-  border: 1px solid color-mix(in oklch, var(--critique) 30%, transparent);
-  color: var(--critique);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 8px 12px;
-}
+/* .auth-switch : reset de base (bouton stylé en lien) — la couleur/police
+   sont redéfinies plus bas dans la section landing, seul consommateur. */
 .auth-switch {
   background: none;
   border: none;
-  color: var(--seuil);
-  font-size: 12px;
+  font-size: 12.5px;
   cursor: pointer;
   padding: 4px 0;
+  text-align: left;
+}
+
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4
+ * Hallmark · genre: playful · macrostructure: Split Studio (adaptée écran
+ *   d'authentification) · theme: studied-DNA (source: frontend/landing/,
+ *   local — pas une URL externe) · nav: none · footer: none
+ *
+ * Premier jet (voir git log) restait sur les tokens Direction D de l'app —
+ * jugé "trop boring" une fois vu en vrai. Deuxième passe, demandée
+ * explicitement : reprendre le DNA de la landing marketing
+ * (frontend/landing/, Direction B "Vivant & humain") plutôt que le
+ * registre pro/sobre de l'app. Les deux systèmes sont VOLONTAIREMENT
+ * distincts (commentaire en tête de frontend/landing/tokens.css) — ce
+ * choix les fait se toucher exactement à l'endroit où un visiteur passe
+ * de l'un à l'autre : LoginPage est la page vers laquelle la landing
+ * renvoie (bouton "Créer mon espace cabinet" → /#creer). D'où la carte de
+ * citation reprise à l'identique (même contenu que le hero de la landing,
+ * pas une nouvelle invention) : continuité, pas juste un changement de
+ * palette.
+ * Tokens `--auth-*` ci-dessous copiés tels quels depuis
+ * frontend/landing/tokens.css (pas ré-estimés), scopés à `.auth-shell`
+ * pour ne RIEN changer au reste de l'app (Direction D intact partout
+ * ailleurs) — nouvelles classes dédiées (.auth-input, .auth-submit,
+ * .auth-alert...) plutôt que de réécrire .form-input/.btn/.alert par-
+ * dessus : ces classes partagées gardent leur sens Direction D pour
+ * toutes les autres pages qui les utilisent.
+ * AcceptInvitePage.jsx alignée sur la même DNA le même jour (elle restait
+ * sur l'ancienne `.auth-card` bordeaux/crème, supprimée — cf. commentaire
+ * `.auth-shell` plus haut). CorrectionsPage reste hors scope : jamais
+ * portée Direction D, ampleur d'une page à part entière (cf. mémoire
+ * projet), reportée à une session dédiée. ────────────────────────────── */
+.auth-shell {
+  --auth-toile:       #fff6ec;
+  --auth-encre:       #2c2620;
+  --auth-ardoise:     #5c5142;
+  --auth-sourdine:    #8c8172;
+  --auth-bordure:     #f0e6d8;
+  --auth-surface:     #ffffff;
+  --auth-accent:      #e2622c;
+  --auth-accent-dark: #a8461c;
+  --auth-accent-ink:  #fff8f0;
+  --auth-accent-soft: #f3e3d3;
+  --auth-sage:        #bfe3c4;
+  --auth-sage-ink:    #2b5934;
+  --auth-sable:       #ffd9a0;
+  --auth-corail:      #ffc9c2;
+  --auth-corail-ink:  #8a3226;
+  --auth-font-display: 'Bricolage Grotesque', var(--font-display), sans-serif;
+  --auth-font-body:    'Plus Jakarta Sans', var(--font-sans), sans-serif;
+  --auth-radius-sm:   12px;
+  --auth-radius-md:   18px;
+  --auth-radius-lg:   24px;
+  --auth-radius-full: 999px;
+  --auth-ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth-split {
+  width: 100%;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(320px, 42%) minmax(0, 1fr);
+  font-family: var(--auth-font-body);
+  background: var(--auth-toile);
+}
+
+.auth-aside {
+  padding: 56px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+}
+.auth-wordmark {
+  font-family: var(--auth-font-display);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--auth-encre);
+}
+.auth-statement {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--auth-ardoise);
+  max-width: 40ch;
+}
+
+/* Carte de citation — reprise à l'identique du hero de la landing (même
+   contenu réel, pas une nouvelle invention) : inclinée, ombre décalée
+   sans flou, langage "chunky" propre à Direction B. */
+.citation-demo {
+  background: var(--auth-surface);
+  border: 2px solid var(--auth-encre);
+  border-radius: var(--auth-radius-lg);
+  padding: 20px 22px;
+  max-width: 320px;
+  transform: rotate(-1.1deg);
+  box-shadow: 8px 10px 0 0 var(--auth-sable);
+  transition: transform var(--auth-ease-out, ease-out) 220ms;
+}
+.citation-demo-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--auth-accent);
+  margin-bottom: 10px;
+}
+.citation-demo-alert .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--auth-accent); flex-shrink: 0; }
+.citation-demo-text { font-size: 15px; color: var(--auth-encre); line-height: 1.5; }
+.citation-demo-pill {
+  display: inline-flex;
+  margin-top: 12px;
+  padding: 5px 12px;
+  border-radius: var(--auth-radius-full);
+  background: var(--auth-sage);
+  color: var(--auth-sage-ink);
+  font-weight: 800;
+  font-size: 12px;
+}
+.citation-demo-excerpt {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--auth-ardoise);
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.auth-panel {
+  background: var(--auth-surface);
+  border-left: 2px solid var(--auth-bordure);
+  display: flex;
+  align-items: center;
+  padding: 56px 48px;
+  min-width: 0;
+}
+.auth-form {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.auth-heading {
+  font-family: var(--auth-font-display);
+  font-weight: 800;
+  font-size: 24px;
+  color: var(--auth-encre);
+  letter-spacing: -0.01em;
+  margin-bottom: 22px;
+  overflow-wrap: anywhere;
+}
+
+/* Bascule connexion/inscription : grid-rows plutôt qu'un montage/
+   démontage sec — jamais `height`/`max-height` (déclenche un reflow à
+   chaque frame), voir microinteractions.md § transitions bannies. */
+.auth-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms ease-out;
+}
+.auth-reveal[data-open="true"] { grid-template-rows: 1fr; }
+.auth-reveal-inner { overflow: hidden; min-height: 0; }
+
+.auth-field { margin-bottom: 16px; }
+.auth-field label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--auth-encre);
+  margin-bottom: 6px;
+}
+.auth-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 2px solid var(--auth-encre);
+  border-radius: var(--auth-radius-sm);
+  font-family: var(--auth-font-body);
+  font-size: 14px;
+  color: var(--auth-encre);
+  background: var(--auth-surface);
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+  transition: outline-color 150ms var(--auth-ease-out, ease-out), background-color 150ms var(--auth-ease-out, ease-out);
+}
+.auth-input:hover { background: var(--auth-toile); }
+.auth-input:focus-visible { outline-color: var(--auth-accent); }
+.auth-input:disabled { opacity: 0.55; cursor: not-allowed; }
+.auth-input.is-invalid { border-color: var(--auth-corail-ink); }
+.auth-field-error {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--auth-corail-ink);
+}
+
+.auth-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--auth-corail);
+  color: var(--auth-corail-ink);
+  border-radius: var(--auth-radius-sm);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+.auth-alert .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--auth-corail-ink); flex-shrink: 0; }
+
+/* La règle globale `:focus-visible` (index.css) pose un anneau bordeaux
+   (--seuil) — cohérent partout ailleurs dans l'app, mais détonnerait sur
+   le terracotta de cette section. Ne recolore QUE ce qui vit sous
+   `.auth-shell`. */
+.auth-shell :focus-visible { outline-color: var(--auth-accent); }
+
+/* Bouton pilule + ombre "chunky" décalée — recette identique au bouton
+   primaire de la landing (styles.css), reproduite ici plutôt que
+   partagée via .btn/.btn-primary pour ne pas changer leur rendu
+   Direction D ailleurs dans l'app. */
+.auth-submit {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 13px;
+  border: none;
+  border-radius: var(--auth-radius-full);
+  background: var(--auth-accent);
+  color: var(--auth-accent-ink);
+  font-family: var(--auth-font-body);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 6px 0 0 var(--auth-accent-dark);
+  transition: transform 120ms var(--auth-ease-out, ease-out), box-shadow 120ms var(--auth-ease-out, ease-out), opacity 120ms;
+}
+.auth-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 0 0 var(--auth-accent-dark); }
+.auth-submit:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 3px 0 0 var(--auth-accent-dark); }
+.auth-submit:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: 0 6px 0 0 var(--auth-accent-dark); }
+
+@keyframes auth-spin { to { transform: rotate(360deg); } }
+.auth-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--auth-accent-ink) 35%, transparent);
+  border-top-color: var(--auth-accent-ink);
+  border-radius: 50%;
+  animation: auth-spin 700ms linear infinite;
+}
+
+.auth-switch {
+  margin-top: 4px;
+  color: var(--auth-accent-dark);
+  font-family: var(--auth-font-body);
+  font-weight: 700;
+}
+.auth-switch:hover { color: var(--auth-accent); }
+
+@media (max-width: 860px) {
+  .auth-split { grid-template-columns: 1fr; min-height: auto; }
+  .auth-aside { padding: 40px 28px 32px; gap: 24px; }
+  .citation-demo { max-width: none; }
+  .auth-panel { padding: 32px 24px 56px; border-left: none; border-top: 2px solid var(--auth-bordure); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-reveal { transition: none; }
+  .citation-demo { transition: none; }
+  .auth-submit { transition: none; }
+  .auth-spinner { animation: none; border-top-color: color-mix(in srgb, var(--auth-accent-ink) 35%, transparent); }
 }
 
 /* ── Phase 3 : sélecteur de dossier (Topbar) + onboarding ───────────── */
@@ -2150,6 +2444,9 @@
    native au survol), pas en texte permanent — cursor:help signale que le
    libellé porte plus d'info sans l'imposer à la lecture. */
 .roi-item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 10.5px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2158,6 +2455,10 @@
   margin-bottom: 5px;
   cursor: help;
 }
+/* Signale que le libellé porte une infobulle (title natif) sans l'imposer
+   à la lecture — sans elle, rien ne distinguait "juste un libellé" d'"un
+   libellé qui explique sa méthode de calcul au survol". */
+.roi-info-icon { opacity: 0.55; flex-shrink: 0; }
 .roi-item-value {
   font-family: var(--font-mono);
   font-size: 18px;
@@ -2204,6 +2505,12 @@
 .dossier-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dossier-card-name { font-weight: 600; font-size: 14px; }
 .dossier-card-meta { font-size: 11.5px; color: var(--ardoise); }
+/* Lignes de contexte (exposition, prochaine échéance) — texte seul, pas de
+   nouveau bloc coloré : la couleur de la carte reste réservée au Badge de
+   statut (cf. commentaire sur .dossier-card). .critique ne teinte QUE ce
+   texte précis, jamais le fond. */
+.dossier-card-stat { font-size: 11.5px; color: var(--sourdine); }
+.dossier-card-stat.critique { color: var(--critique); font-weight: 600; }
 /* Lien permanent (même onClick que la carte, pas un second élément
    interactif) — poussé en bas via margin-top:auto pour que toutes les
    cartes d'une même rangée l'alignent, quelle que soit la longueur du nom
@@ -2387,16 +2694,24 @@
 
 .profile-role-desc { font-size: 12px; color: var(--ardoise); line-height: 1.5; }
 
-/* Seule table encore en styles de secours (var(--x, #hex)) datant d'avant
-   les tokens Direction D — jamais reprise depuis. Carrée comme le reste
-   (0, pas 10px), fond réel var(--surface), un état hover pour que la ligne
-   d'une action (Assigner/Désactiver/Révoquer) se distingue au survol au
-   lieu d'un tableau entièrement statique. */
-.invitations-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--bordure); }
-.invitations-table th, .invitations-table td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--bordure); }
-.invitations-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sourdine); font-weight: 600; background: var(--toile); border-bottom: 1px solid var(--encre); }
-.invitations-table tr:last-child td { border-bottom: none; }
-.invitations-table tbody tr:hover { background: var(--surface-2); }
+/* Générique — était `.invitations-table` (seul tableau du produit à
+   l'époque, encore en styles de secours var(--x, #hex) datant d'avant les
+   tokens Direction D). Renommé en la réutilisant pour la table "À traiter
+   maintenant" de CabinetOverviewPage plutôt que de dupliquer les mêmes
+   règles sous un 2e nom. Carrée comme le reste (0, pas 10px), fond réel
+   var(--surface), un état hover pour que la ligne d'une action se distingue
+   au survol au lieu d'un tableau entièrement statique. */
+.data-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--bordure); }
+.data-table th, .data-table td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--bordure); }
+/* --surface-2, pas --toile : --toile EST le fond de page, donc un thead sur
+   --toile à l'intérieur d'une carte --surface (quasi blanche) se fondait
+   visuellement avec la page tout autour de la carte au lieu de se
+   distinguer comme un en-tête de tableau. --surface-2 est le même ton déjà
+   utilisé pour le survol de ligne juste en dessous — panneau interne
+   cohérent, pas une 3e couleur inventée. */
+.data-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sourdine); font-weight: 600; background: var(--surface-2); border-bottom: 1px solid var(--encre); }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--surface-2); }
 
 /* Repère visuel par ligne — sans lui, la colonne Email est juste du texte
    gris aligné à gauche du début à la fin du tableau, rien à quoi accrocher

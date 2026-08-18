@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { RefreshCw, ArrowRight, Database, CalendarClock, PiggyBank } from 'lucide-react'
+import { RefreshCw, ArrowRight, Database, CalendarClock } from 'lucide-react'
 import GaugeSeuil from '../components/ui/GaugeSeuil'
+import GaugeRing from '../components/ui/GaugeRing'
 import Indicator from '../components/ui/Indicator'
 import Badge from '../components/ui/Badge'
 import { dossierFetch } from '../config/api'
@@ -18,7 +19,9 @@ export default function DashboardPage({
 }) {
   const [upcomingEvents, setUpcomingEvents] = useState([])
   const [eventsLoading, setEventsLoading] = useState(true)
-  const [roi, setRoi] = useState(null) // GET /dossiers/{id}/roi
+  // Bloc ROI (GET /dossiers/{id}/roi) retiré de cette vue sur demande
+  // explicite, comme sur CabinetOverviewPage — "on verra après où le
+  // mettre". Route et CSS .roi-* toujours en place côté backend/App.css.
 
   useEffect(() => {
     if (!summary || summary.status === 'no_data') return
@@ -28,19 +31,6 @@ export default function DashboardPage({
       .then((d) => setUpcomingEvents((d.events || []).slice(0, 4)))
       .catch(() => setUpcomingEvents([]))
       .finally(() => setEventsLoading(false))
-  }, [summary])
-
-  useEffect(() => {
-    // audit_status === 'done' : inutile d'interroger le ROI d'un dossier
-    // jamais analysé, /roi renvoie de toute façon "indisponible" dans ce cas.
-    if (!summary || summary.status === 'no_data' || summary.audit_status !== 'done') {
-      setRoi(null)
-      return
-    }
-    dossierFetch('/roi')
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => setRoi(d.status === 'ok' ? d : null))
-      .catch(() => setRoi(null))
   }, [summary])
 
   if (!summary || summary.status === 'no_data') {
@@ -223,11 +213,12 @@ export default function DashboardPage({
       {executive_summary && (
         <div className={`exec-summary-card exec-summary-card--${scoreCls}`}>
           <div className="exec-summary-left">
-            {/* Carré plein, pas un anneau SVG : même langage que le reste du
-                design (statut = carré coloré), et compliance_score est une
-                vraie donnée mesurée par l'audit — contrairement au score
-                cabinet global, qui lui n'existe pas côté API. */}
-            <div className={`exec-summary-score-box ${scoreCls}`}>{compliance_score}</div>
+            {/* Anneau, pas un carré plein : ce bloc doit se lire avant même
+                le texte à côté, cf. commentaire sur .exec-summary-card--*
+                dans App.css. compliance_score est une vraie donnée mesurée
+                par l'audit — contrairement au score cabinet global, qui lui
+                n'existe pas côté API. */}
+            <GaugeRing score={compliance_score} cls={scoreCls} size={64} strokeWidth={6} />
 
             <div className="exec-summary-text">
               <div className="exec-summary-label">Résumé exécutif</div>
@@ -251,7 +242,7 @@ export default function DashboardPage({
           </div>
 
           <button
-            className="exec-summary-cta"
+            className="hero-cta"
             onClick={() => onGoToAudit?.()}
           >
             Voir les anomalies <ArrowRight size={13} />
@@ -296,67 +287,9 @@ export default function DashboardPage({
         </div>
       </div>
 
-      {/* Deux chiffres MESURÉS (exposition détectée / régularisée) et un
-          chiffre ESTIMÉ (temps épargné) — l'hypothèse du temps est affichée
-          à côté du chiffre, jamais cachée derrière : même exigence que le
-          reste du produit ("zéro affirmation sans source"). */}
-      {roi && (
-        <div className="card roi-card" style={{ marginTop: 16 }}>
-          <div className="card-header">
-            <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <PiggyBank size={14} style={{ color: 'var(--seuil)' }} />
-              Valeur générée sur ce dossier
-            </span>
-          </div>
-          <div className="roi-grid">
-            <div className="roi-item">
-              <div
-                className="roi-item-label"
-                title={`Sur ${roi.exposition_detectee_dh.toLocaleString('fr-MA')} DH détectés au total.`}
-              >
-                Exposition régularisée
-              </div>
-              <div className="roi-item-value conforme">
-                {roi.exposition_regularisee_dh.toLocaleString('fr-MA')} <span className="unit">DH</span>
-              </div>
-              <div className="roi-item-tag">mesuré</div>
-            </div>
-            <div className="roi-item">
-              <div
-                className="roi-item-label"
-                title={
-                  roi.hypotheses?.[0]
-                    ? `Estimé — hypothèse : ${roi.hypotheses[0].valeur} ${roi.hypotheses[0].unite}/pièce sans Nisab.`
-                    : 'Estimé.'
-                }
-              >
-                Temps épargné
-              </div>
-              <div className="roi-item-value">
-                {roi.temps_estime_h.toLocaleString('fr-MA')} <span className="unit">h</span>
-              </div>
-              <div className="roi-item-tag">estimé</div>
-            </div>
-            {/* Échéances À VENIR, jamais mélangé aux anomalies déjà
-                détectées ci-dessus — seule la TVA a une base chiffrable
-                (TVA facturée - déductible dans les écritures). */}
-            {roi.nb_echeances_suivies > 0 && (
-              <div className="roi-item">
-                <div
-                  className="roi-item-label"
-                  title={`${roi.nb_echeances_base_connue}/${roi.nb_echeances_suivies} échéance(s) chiffrable(s) (TVA uniquement).`}
-                >
-                  Échéances suivies
-                </div>
-                <div className="roi-item-value vigilance">
-                  {roi.exposition_echeances_dh.toLocaleString('fr-MA')} <span className="unit">DH</span>
-                </div>
-                <div className="roi-item-tag">TVA uniquement</div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Bloc ROI ("Valeur générée sur ce dossier") retiré d'ici sur demande
+          explicite, cf. commentaire au-dessus de l'état roi plus haut dans
+          ce fichier. */}
 
       <div
         style={{

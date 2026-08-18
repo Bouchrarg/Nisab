@@ -1,0 +1,71 @@
+/* ─── NISAB LANDING — TOKENS — Direction B "Vivant & humain" ───────────
+   Choisie le 18/08 parmi 3 maquettes (voir canvas de direction). Palette
+   et pairing typo INDÉPENDANTS de l'app (Direction D, bordeaux/crème) —
+   la landing a le droit d'être plus chaleureuse/vivante que l'interface
+   produit, qui elle reste pro/sobre. ─────────────────────────────────── */
+:root {
+  /* Fond & encre */
+  --toile:    #fff6ec;
+  --encre:    #2c2620;
+  --ardoise:  #5c5142;
+  --sourdine: #8c8172;
+  --bordure:  #f0e6d8;
+  --surface:  #ffffff;
+
+  /* Accent principal : terracotta */
+  --accent:      #e2622c;
+  --accent-dark: #a8461c;
+  --accent-ink:  #fff8f0;
+  --accent-soft: #f3e3d3;
+
+  /* Palette secondaire — une couleur par statistique/carte, jamais mélangées
+     dans un même élément (chaque carte = une seule teinte, pleine, pas de
+     dégradé). */
+  --sage:        #bfe3c4;
+  --sage-ink:    #2b5934;
+  --sable:       #ffd9a0;
+  --sable-ink:   #8a5714;
+  --corail:      #ffc9c2;
+  --corail-ink:  #8a3226;
+  --lavande:     #d8d2ff;
+  --lavande-ink: #463b8a;
+
+  /* Typographie */
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body:    'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', 'Menlo', monospace;
+
+  /* Échelle */
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-md:   1.125rem;
+  --text-lg:   1.375rem;
+  --text-xl:   1.75rem;
+  --text-2xl:  2.1875rem;
+  --text-display-s: clamp(2rem, 3.4vw + 1rem, 2.75rem);
+  --text-display:   clamp(2.5rem, 4.6vw + 1rem, 3.75rem);
+  --text-hero:      clamp(2.75rem, 5.4vw + 1rem, 4.5rem);
+
+  /* Espacement 4pt */
+  --space-3xs: 4px;
+  --space-2xs: 8px;
+  --space-xs:  12px;
+  --space-sm:  16px;
+  --space-md:  24px;
+  --space-lg:  32px;
+  --space-xl:  48px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-full: 999px;
+
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:     cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long:  420ms;
+}

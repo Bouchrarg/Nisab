@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, ArrowRight, Building2, Scale, CalendarClock, PiggyBank } from 'lucide-react'
+import { Plus, ArrowRight, Building2, Scale, CalendarClock, AlertOctagon } from 'lucide-react'
 import { apiFetch } from '../config/api'
+import { useAuth } from '../context/AuthContext'
 import { useDossier } from '../context/DossierContext'
 import { parseDate } from '../utils/dates'
 import Badge from '../components/ui/Badge'
@@ -23,6 +24,7 @@ const plural = (n, ...words) => `${n} ${words.map((w) => `${w}${n > 1 ? 's' : ''
 // = une carte avec un feu tricolore résumant sa situation, sans avoir à
 // entrer dedans. Le point d'entrée par défaut après connexion.
 export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsChange }) {
+  const { user } = useAuth()
   const { dossiers, createDossier, loading } = useDossier()
   const [summaries, setSummaries] = useState({}) // { [dossierId]: summary | 'loading' | 'error' }
   const [showCreate, setShowCreate] = useState(false)
@@ -31,14 +33,6 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
   const [creating, setCreating] = useState(false)
   const [lawFeed, setLawFeed] = useState([])
   const [echeances, setEcheances] = useState({}) // { [dossierId]: events[] | 'loading' | 'error' }
-  const [roi, setRoi] = useState(null) // GET /roi/portefeuille — null tant que non chargé
-
-  useEffect(() => {
-    apiFetch('/roi/portefeuille')
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then(setRoi)
-      .catch(() => setRoi(null))
-  }, [dossiers])
 
   useEffect(() => {
     dossiers.forEach((d) => {
@@ -87,6 +81,15 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 6)
 
+  // Prochaine échéance PAR dossier — dérivée de `echeances`, déjà chargé
+  // dossier par dossier ci-dessus (pas de nouvel appel réseau). Réutilisée
+  // à la fois par les cartes dossier et par la table "À traiter maintenant".
+  const nextEcheanceFor = (dossierId) => {
+    const events = echeances[dossierId]
+    if (!Array.isArray(events)) return null
+    return events.filter((e) => e.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0] || null
+  }
+
   useEffect(() => {
     apiFetch('/law/feed?mode=latest&limit=8')
       .then((r) => (r.ok ? r.json() : Promise.reject()))
@@ -116,7 +119,11 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
   const feuFor = (dossierId) => {
     const s = summaries[dossierId]
     if (s === 'loading') return { cls: 'neutral', label: 'Chargement…' }
-    if (s === 'error' || !s || s.status === 'no_data') return { cls: 'neutral', label: 'Aucune donnée chargée' }
+    if (s === 'error') return { cls: 'neutral', label: 'Erreur de chargement' }
+    // « Données non importées » plutôt que « Aucune donnée chargée » : décrit
+    // l'action manquante (importer), pas juste l'état — la carte propose
+    // explicitement cette action plus bas (voir dossier-card-open ci-dessous).
+    if (!s || s.status === 'no_data') return { cls: 'neutral', label: 'Données non importées' }
     if (s.audit_status === 'jamais_lance') return { cls: 'neutral', label: 'Non analysé' }
     if ((s.risks?.rouge || 0) > 0) return { cls: 'critique', label: plural(s.risks.rouge, 'anomalie', 'critique') }
     if ((s.risks?.orange || 0) > 0) return { cls: 'vigilance', label: plural(s.risks.orange, 'alerte') }
@@ -141,35 +148,98 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
     onCriticalAlertsChange?.(criticalAlerts)
   }, [criticalAlerts, onCriticalAlertsChange])
 
+  // Table "À traiter maintenant" : dossiers analysés avec au moins une
+  // alerte (critique OU modérée), triés par urgence puis par exposition —
+  // c'est la question qu'un associé pose réellement ("lesquels EN PREMIER ?"),
+  // pas juste "combien d'anomalies au total". Purement dérivé de summaries/
+  // echeances déjà chargés, aucun nouvel appel. Les dossiers "Conforme" ou
+  // "Non analysé" n'y figurent jamais : cette table n'est PAS un inventaire,
+  // c'est une file d'action.
+  const priorityDossiers = useMemo(
+    () =>
+      dossiers
+        .map((d) => ({ dossier: d, s: summaries[d.id], echeance: nextEcheanceFor(d.id) }))
+        .filter(({ s }) => s && s !== 'loading' && s !== 'error' && s.status !== 'no_data' && ((s.risks?.rouge || 0) > 0 || (s.risks?.orange || 0) > 0))
+        .sort((a, b) => {
+          const ra = a.s.risks?.rouge || 0, rb = b.s.risks?.rouge || 0
+          if (rb !== ra) return rb - ra
+          const oa = a.s.risks?.orange || 0, ob = b.s.risks?.orange || 0
+          if (ob !== oa) return ob - oa
+          return (b.s.total_exposure_dh || 0) - (a.s.total_exposure_dh || 0)
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dossiers, summaries, echeances]
+  )
+  // Limité aux 3 plus critiques : au-delà, cette table et la grille "Vos
+  // dossiers" juste en dessous (qui liste TOUS les dossiers, y compris
+  // ceux-ci) finissaient par répéter deux fois la même information sur un
+  // même écran — la table doit rester "les urgences", pas un 2e inventaire.
+  const topPriorityDossiers = priorityDossiers.slice(0, 3)
+
   // Prochaine échéance tous dossiers confondus — réutilisée dans la synthèse
   // ci-dessous, pas un nouvel appel (upcomingEcheances existe déjà).
   const nextEcheance = upcomingEcheances[0]
   const nextEcheanceDate = nextEcheance ? parseDate(nextEcheance.date) : null
   const todayLabel = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
+  // Salutation — chaleur par la personnalisation plutôt que par la couleur
+  // (cf. commentaire .cabinet-hero dans App.css, option A retenue sur
+  // maquette). Prénom = premier mot de nom_complet (rempli à l'inscription),
+  // retombe sur la partie locale de l'email si nom_complet est vide (compte
+  // créé avant que ce champ existe), puis sur la salutation elle-même si
+  // même l'email manque (ne devrait pas arriver, mais le médaillon a besoin
+  // d'une lettre quoi qu'il arrive).
+  const prenom = (user?.nom_complet || '').trim().split(/\s+/)[0] || user?.email?.split('@')[0] || ''
+  const heureActuelle = new Date().getHours()
+  const salutation = heureActuelle < 12 ? 'Bonjour' : heureActuelle < 18 ? 'Bon après-midi' : 'Bonsoir'
+  const greeting = prenom ? `${salutation}, ${prenom}` : salutation
+  const initiale = (prenom || salutation).charAt(0).toUpperCase()
+
   // Phrase de synthèse : un fait direct, pas un jugement enrobé ("évolue en
   // position de conformité à surveiller" ne voulait rien dire de précis) ni
   // un score inventé — Nisab n'a pas de note globale sur 100 pour le cabinet
-  // (aucune API ne la calcule). Juste ce qui est réellement mesuré, avec le
-  // même repère "sur X analysés" que la bande KPI juste en dessous.
+  // (aucune API ne la calcule). Rendue en JSX plutôt qu'en simple chaîne
+  // pour pouvoir sortir le chiffre-clé (nb de dossiers en alerte) en plus
+  // grand + bordeaux dans le texte — seule la branche "il y a des alertes"
+  // a un chiffre à mettre en avant, les deux autres restent du texte plat.
   const cabinetHeadline =
-    criticalAlerts.length > 0
-      ? `${plural(criticalAlerts.length, 'dossier')} nécessite${criticalAlerts.length > 1 ? 'nt' : ''} une attention immédiate, sur ${plural(analysedSummaries.length, 'dossier', 'analysé')}.`
-      : analysedSummaries.length > 0
-        ? `Aucun dossier ne nécessite d'attention immédiate, sur ${plural(analysedSummaries.length, 'dossier', 'analysé')}.`
-        : "Aucun dossier n'a encore été analysé."
+    criticalAlerts.length > 0 ? (
+      <>
+        <span className="num">{criticalAlerts.length}</span> {criticalAlerts.length > 1 ? 'dossiers' : 'dossier'} nécessite
+        {criticalAlerts.length > 1 ? 'nt' : ''} une attention immédiate, sur {plural(analysedSummaries.length, 'dossier', 'analysé')}.
+      </>
+    ) : analysedSummaries.length > 0 ? (
+      `Aucun dossier ne nécessite d'attention immédiate, sur ${plural(analysedSummaries.length, 'dossier', 'analysé')}.`
+    ) : (
+      "Aucun dossier n'a encore été analysé."
+    )
 
   return (
     <div>
-      {/* Synthèse : carte encadrée neutre (pas de bandeau coloré) — le ton
-          donne le cadre, la bande KPI juste en dessous donne le détail
-          chiffré. Purement dérivée de données déjà chargées sur cette page. */}
+      {/* Synthèse — Option A retenue sur maquette (cf. commentaire .cabinet-hero
+          dans App.css) : fond clair inchangé, différenciation par la
+          typographie + une touche de bordeaux localisée (eyebrow, médaillon,
+          chiffre-clé), jamais un aplat plein. Purement dérivée de données
+          déjà chargées sur cette page (+ user via useAuth pour la
+          salutation). */}
       {dossiers.length > 0 && (
         <div className="cabinet-hero">
+          <div className="cabinet-hero-greeting-row">
+            <span className="cabinet-hero-medal">{initiale}</span>
+            <span className="cabinet-hero-greeting">{greeting}</span>
+          </div>
           <div className="cabinet-hero-eyebrow">Synthèse du cabinet</div>
           <div className="cabinet-hero-headline">{cabinetHeadline}</div>
           <div className="cabinet-hero-meta">
+            {/* Décomposition explicite suivis/analysés/en attente — un
+                simple "8 dossiers suivis" lu juste après "5 sur 7 analysés"
+                dans la phrase de synthèse au-dessus posait la question "8 ?
+                7 ? 5 ?". Le total et son périmètre vivent maintenant sur la
+                même ligne, dans l'ordre où on les recompose mentalement. */}
             Actualisé le {todayLabel} · {plural(dossiers.length, 'dossier')} suivi{dossiers.length > 1 ? 's' : ''}
+            {portfolioStats.nbNonAnalyses > 0
+              ? ` (${plural(analysedSummaries.length, 'analysé')}, ${plural(portfolioStats.nbNonAnalyses, 'en attente de données')})`
+              : ''}
             {nextEcheance && (
               <>
                 {' '}· Prochaine échéance : {nextEcheance.title}
@@ -179,6 +249,15 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
           </div>
         </div>
       )}
+
+      {/* Sommaire cliquable essayé 2 fois (dans la carte, puis en rangée de
+          puces séparée) — retiré complètement sur demande explicite après
+          le 2e essai ("où sont posés" + "trop présent"). Retour à l'état
+          d'avant : on scrolle. Les id de section (priorite-section,
+          dossiers-section, echeances-section, veille-section) posés plus
+          bas sont laissés en place — inertes sans lien qui les cible, mais
+          réutilisables directement si une navigation reprend un jour sous
+          une forme différente. */}
 
       {dossiers.length > 0 && (
         <div className="kpi-grid">
@@ -225,88 +304,58 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
         </div>
       )}
 
-      {/* Valeur générée : deux chiffres MESURÉS (exposition détectée /
-          régularisée, sommées depuis les alertes réellement chiffrables —
-          jamais un "non_calculable" compté comme 0 DH) et un chiffre ESTIMÉ
-          (temps épargné). Les hypothèses/méthodologie passent en title
-          (infobulle native au survol) plutôt qu'en texte permanent — la
-          donnée reste disponible, juste pas imposée à la lecture. */}
-      {roi && roi.status === 'ok' && roi.nb_dossiers > 0 && (
-        <div className="card roi-card" style={{ marginTop: 16 }}>
-          <div className="card-header">
-            <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <PiggyBank size={14} style={{ color: 'var(--seuil)' }} />
-              Valeur générée par Nisab
-            </span>
-            <span style={{ fontSize: 11, color: 'var(--sourdine)' }}>
-              {plural(roi.nb_dossiers, 'dossier', 'analysé')}
-              {roi.nb_dossiers_non_analyses > 0 ? ` · ${plural(roi.nb_dossiers_non_analyses, 'non analysé')}` : ''}
-            </span>
+      {/* Bloc ROI retiré des deux vues (dossier + cabinet) sur demande
+          explicite — "on verra après où le mettre". Le composant existe
+          toujours côté backend (routes_roi.py, roi.py) et le CSS .roi-*
+          n'a pas été supprimé (réutilisable tel quel le jour où ce bloc
+          revient ailleurs), seul l'affichage ici a été enlevé. */}
+
+      {/* Titre nu, pas de carte autour : la version encartée (icône + badge
+          compteur + padding de card-header) prenait trop de place pour un
+          bloc qui n'est qu'un sous-ensemble des dossiers déjà visibles plus
+          bas en cartes — "grand titre" demandé explicitement, pas un
+          conteneur de plus. Le tableau lui-même garde son propre filet
+          (.data-table a déjà sa bordure), donc la limite reste lisible sans
+          boîte englobante. */}
+      {topPriorityDossiers.length > 0 && (
+        <>
+          <div id="priorite-section" className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, scrollMarginTop: 20 }}>
+            <AlertOctagon size={17} style={{ color: 'var(--critique)' }} />
+            À traiter maintenant
           </div>
-          {/* Grille (pas flex-wrap) : le nombre de colonnes s'ajuste au
-              nombre de métriques réellement présentes (3 ou 4 selon que les
-              échéances TVA sont suivies), donc jamais une métrique isolée
-              seule sur sa ligne. */}
-          <div className="roi-grid">
-            <div className="roi-item">
-              <div className="roi-item-label" title="Mesuré à partir des alertes chiffrables, dossiers analysés uniquement.">
-                Exposition détectée
-              </div>
-              <div className="roi-item-value critique">
-                {roi.exposition_detectee_dh.toLocaleString('fr-MA')} <span className="unit">DH</span>
-              </div>
-              <div className="roi-item-tag">mesuré</div>
-            </div>
-            <div className="roi-item">
-              <div className="roi-item-label" title="Mesuré sur les anomalies marquées « traitée ».">
-                Exposition régularisée
-              </div>
-              <div className="roi-item-value conforme">
-                {roi.exposition_regularisee_dh.toLocaleString('fr-MA')} <span className="unit">DH</span>
-              </div>
-              <div className="roi-item-tag">mesuré</div>
-            </div>
-            <div className="roi-item">
-              <div
-                className="roi-item-label"
-                title={
-                  roi.hypotheses?.[0]
-                    ? `Estimé — hypothèse : ${roi.hypotheses[0].valeur} ${roi.hypotheses[0].unite}/pièce sans Nisab.`
-                    : 'Estimé.'
-                }
-              >
-                Temps épargné
-              </div>
-              <div className="roi-item-value">
-                {roi.temps_estime_h.toLocaleString('fr-MA')} <span className="unit">h</span>
-              </div>
-              <div className="roi-item-tag">estimé</div>
-            </div>
-            {/* Distinct de "Exposition détectée" : celle-ci vient d'anomalies
-                déjà commises (le passé), celle-ci d'échéances À VENIR (le
-                futur) — jamais additionnées. Seule la TVA a une base
-                chiffrable depuis les écritures (TVA facturée - déductible) ;
-                IS/IR/CNSS/Taxe Professionnelle restent comptés, pas chiffrés
-                (`nb_echeances_base_connue` le dit explicitement, en infobulle). */}
-            {roi.nb_echeances_suivies > 0 && (
-              <div className="roi-item">
-                <div
-                  className="roi-item-label"
-                  title={
-                    `${roi.nb_echeances_base_connue}/${roi.nb_echeances_suivies} échéance(s) chiffrable(s) (TVA uniquement)` +
-                    (roi.hypotheses?.[1] ? ` — plancher ${roi.hypotheses[1].valeur}% (Art. 208 CGI)` : '')
-                  }
-                >
-                  Échéances suivies
-                </div>
-                <div className="roi-item-value vigilance">
-                  {roi.exposition_echeances_dh.toLocaleString('fr-MA')} <span className="unit">DH</span>
-                </div>
-                <div className="roi-item-tag">TVA uniquement</div>
-              </div>
-            )}
+          <div style={{ overflowX: 'auto', marginBottom: 20 }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Dossier</th><th>Risque</th><th>Exposition</th><th>Échéance</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {topPriorityDossiers.map(({ dossier: d, s, echeance }) => {
+                  const feu = feuFor(d.id)
+                  const echeanceDate = echeance ? parseDate(echeance.date) : null
+                  return (
+                    <tr key={d.id}>
+                      <td style={{ fontWeight: 600 }}>{d.raison_sociale}</td>
+                      <td><Badge cls={feu.cls} small>{feu.label}</Badge></td>
+                      <td className="mono">
+                        {s.total_exposure_dh > 0 ? `${s.total_exposure_dh.toLocaleString('fr-MA')} DH` : '—'}
+                      </td>
+                      <td>
+                        {echeance ? `${echeance.title}${echeanceDate ? ` (${echeanceDate.day} ${echeanceDate.month})` : ''}` : '—'}
+                      </td>
+                      <td>
+                        <button className="btn btn-secondary btn-sm" onClick={() => onOpenDossier(d)}>
+                          Examiner <ArrowRight size={12} />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </>
       )}
 
       {/* alignItems: center (au lieu du défaut flex-start de .section-header,
@@ -314,12 +363,20 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
           seule ligne calé en haut à côté du bouton paraissait décentré.
           Scopé à cette page, pas touché ailleurs. La cloche d'alertes a
           déménagé dans le Topbar (voir plus haut dans ce fichier). */}
-      <div className="section-header" style={{ alignItems: 'center' }}>
-        {/* Pas de sous-titre : "vue globale du cabinet" est déjà dit par la
-            synthèse en haut de page, et "cliquez pour ouvrir" est une
-            évidence une fois les cartes sous les yeux — la répéter ici
-            n'ajoutait rien, juste une ligne de plus à lire. */}
-        <div className="section-title">Vos dossiers</div>
+      <div id="dossiers-section" className="section-header" style={{ alignItems: 'center', scrollMarginTop: 20 }}>
+        <div>
+          <div className="section-title">Vos dossiers</div>
+          {/* Sous-titre réintroduit : contrairement à avant, il dit quelque
+              chose que rien d'autre sur la page ne dit au même endroit —
+              le total portefeuille juste au-dessus de la grille qu'il
+              décrit, demandé explicitement ("vue portefeuille : 8 dossiers
+              · 31 anomalies · 177k DH"). */}
+          {dossiers.length > 0 && (
+            <div className="section-sub">
+              {plural(dossiers.length, 'dossier')} · {plural(portfolioStats.totalAnomalies, 'anomalie')} · {portfolioStats.totalExposure.toLocaleString('fr-MA')} DH d'exposition
+            </div>
+          )}
+        </div>
         <button className="btn btn-primary btn-sm" onClick={() => setShowCreate((v) => !v)}>
           <Plus size={14} /> Nouveau dossier
         </button>
@@ -379,10 +436,19 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
             // que le résumé n'est pas exploitable (chargement/erreur/jamais
             // analysé) plutôt que d'inventer un 0.
             const hasCount = s && s !== 'loading' && s !== 'error' && s.status !== 'no_data' && s.audit_status !== 'jamais_lance'
+            const noData = s && s !== 'loading' && s !== 'error' && s.status === 'no_data'
             const meta = [
               d.secteur_activite,
               hasCount ? plural(s.nb_anomalies, 'anomalie') : null,
             ].filter(Boolean)
+            // Échéance/exposition : deux lignes de contexte supplémentaires
+            // pour qu'un scan de 2 secondes suffise à savoir "il y a quelque
+            // chose à faire ici, et à peu près quoi" — sans ouvrir le
+            // dossier. Données déjà chargées (summaries/echeances), aucun
+            // nouvel appel réseau. Le statut (Badge) reste la SEULE couleur
+            // de la carte, cf. règle Direction D sur .dossier-card.
+            const echeance = nextEcheanceFor(d.id)
+            const echeanceDate = echeance ? parseDate(echeance.date) : null
             return (
               <div key={d.id} className="dossier-card" onClick={() => onOpenDossier(d)}>
                 <div className="dossier-card-top">
@@ -390,11 +456,24 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
                   <Badge cls={feu.cls}>{feu.label}</Badge>
                 </div>
                 {meta.length > 0 && <div className="dossier-card-meta">{meta.join(' · ')}</div>}
+                {hasCount && s.total_exposure_dh > 0 && (
+                  <div className="dossier-card-stat critique">
+                    Exposition : {s.total_exposure_dh.toLocaleString('fr-MA')} DH
+                  </div>
+                )}
+                {echeance && (
+                  <div className="dossier-card-stat">
+                    Prochaine échéance : {echeance.title}
+                    {echeanceDate ? ` le ${echeanceDate.day} ${echeanceDate.month}` : ''}
+                  </div>
+                )}
                 {/* Toute la carte est cliquable ; ce lien est un rappel
                     visuel de l'action, pas un second élément interactif
-                    distinct (même onClick que la carte). */}
+                    distinct (même onClick que la carte). Le libellé change
+                    pour un dossier sans données : "Ouvrir" ne voulait rien
+                    dire sur un dossier vide, l'action réelle est d'importer. */}
                 <div className="dossier-card-open">
-                  Ouvrir <ArrowRight size={12} aria-hidden="true" />
+                  {noData ? 'Importer les données' : 'Ouvrir'} <ArrowRight size={12} aria-hidden="true" />
                 </div>
               </div>
             )
@@ -403,7 +482,7 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
       )}
 
       <div className="overview-widgets-grid" style={{ marginTop: 24 }}>
-        <div className="card widget">
+        <div id="echeances-section" className="card widget" style={{ scrollMarginTop: 20 }}>
           <div className="card-header">
             <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <CalendarClock size={14} style={{ color: 'var(--seuil)' }} />
@@ -446,7 +525,7 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
           </div>
         </div>
 
-        <div className="card widget">
+        <div id="veille-section" className="card widget" style={{ scrollMarginTop: 20 }}>
           <div className="card-header">
             <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Scale size={14} style={{ color: 'var(--seuil)' }} />

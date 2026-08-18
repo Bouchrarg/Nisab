@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nisab — copilote fiscal sourcé pour cabinets comptables</title>
+<meta name="description" content="Nisab lit vos écritures, repère les anomalies fiscales et montre l’article exact du CGI ou du Bulletin Officiel derrière chaque alerte — zéro chiffre inventé.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- APP_URL : app réelle, inscription déjà fonctionnelle (/auth/register).
+     En local : serveur Vite (npm run dev, port 5173). À changer une fois déployé. -->
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <span class="nav-word">Nisab</span>
+    <div class="nav-links">
+      <a href="#preuve">Le produit</a>
+      <a href="#comment">Comment ça marche</a>
+      <a href="#securite">Sécurité</a>
+      <a class="btn btn-primary btn-sm" href="http://localhost:5173/#creer">Créer mon espace</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+  <section class="hero" id="hero">
+    <span class="blob blob-sage" aria-hidden="true"></span>
+    <span class="blob blob-sable" aria-hidden="true"></span>
+    <div class="wrap hero-grid">
+      <div>
+        <h1 class="hero-headline reveal" style="--i:0">Fini les nuits blanches à chercher <span class="accent">le bon article</span>.</h1>
+        <p class="hero-sub reveal" style="--i:1">Nisab lit vos écritures, repère les anomalies fiscales et vous montre, article par article, pourquoi. Zéro chiffre inventé — promis.</p>
+        <div class="hero-actions reveal" style="--i:2">
+          <a class="btn btn-primary" href="http://localhost:5173/#creer">Créer mon espace cabinet</a>
+          <a class="btn btn-ghost" href="#comment">Comment ça marche</a>
+        </div>
+        <p class="hero-footnote reveal" style="--i:3">Prototype de fin d’études — chiffres mesurés sur les bancs de test du dépôt, pas sur une base de clients en production.</p>
+      </div>
+      <div class="reveal" style="--i:4">
+        <div class="citation-demo">
+          <div class="citation-demo-alert"><span class="dot"></span>Anomalie repérée</div>
+          <p class="citation-demo-text">Un règlement en espèces de 6 200 DH dépasse la limite autorisée pour ce fournisseur.</p>
+          <span class="citation-demo-pill">Art. 11-II du CGI</span>
+          <p class="citation-demo-excerpt">« … règlement en espèces supérieur à 5 000 dirhams par jour et par fournisseur … »</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap product-shot-wrap reveal" style="--i:5">
+      <figure class="product-shot">
+        <img src="screenshot-overview.png" alt="Vue d’ensemble du cabinet dans Nisab : synthèse, indicateurs et liste des dossiers." loading="eager" fetchpriority="high" width="1440" height="335">
+        <figcaption>Capture réelle de l’application — pas une maquette.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section aria-label="Mesures">
+    <div class="wrap">
+      <div class="stat-grid">
+        <div class="stat-card c-sage reveal" style="--i:0">
+          <div class="stat-value mono">0 %</div>
+          <div class="stat-label">de réponses non sourcées (16 questions bilingues testées)</div>
+        </div>
+        <div class="stat-card c-sable reveal" style="--i:1">
+          <div class="stat-value mono">100 %</div>
+          <div class="stat-label">de précision sur les scénarios de démonstration testés</div>
+        </div>
+        <div class="stat-card c-corail reveal" style="--i:2">
+          <div class="stat-value mono">14 / 14</div>
+          <div class="stat-label">tests de cloisonnement entre cabinets réussis</div>
+        </div>
+        <div class="stat-card c-lavande reveal" style="--i:3">
+          <div class="stat-value mono">0</div>
+          <div class="stat-label">écriture validée sans un humain dans la boucle</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="preuve">
+    <div class="wrap">
+      <div class="section-head reveal" style="--i:0">
+        <h2>Chercher un seul article ne suffit pas.</h2>
+      </div>
+      <div class="mechanism-copy reveal" style="--i:1">
+        <p>
+          Une recherche documentaire classique ne retient souvent <strong>qu’un seul article par écriture</strong> —
+          parfois le mauvais, et l’audit affiche « 0 DH » sur un risque bien réel. Nisab ajoute des
+          <strong>règles de calcul déterministes</strong> en complément de la recherche : elles vérifient
+          leur référence dans les textes avant d’émettre une alerte. Article introuvable, aucune alerte.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="comment">
+    <div class="wrap">
+      <div class="section-head reveal" style="--i:0">
+        <h2>Comment ça marche, en vrai</h2>
+        <p>De l’import à la correction validée.</p>
+      </div>
+      <div class="step-grid">
+        <div class="step reveal" style="--i:0">
+          <div class="step-number mono">01</div>
+          <div class="step-title">Vous importez</div>
+          <p class="step-body">CSV, Excel, Odoo en direct, ou une photo de facture.</p>
+        </div>
+        <div class="step reveal" style="--i:1">
+          <div class="step-number mono">02</div>
+          <div class="step-title">Nisab cherche</div>
+          <p class="step-body">Dans les textes de loi et dans les calculs — jamais au hasard.</p>
+        </div>
+        <div class="step reveal" style="--i:2">
+          <div class="step-number mono">03</div>
+          <div class="step-title">Vous voyez la source</div>
+          <p class="step-body">Chaque alerte pointe un vrai article. Sinon, pas d’alerte.</p>
+        </div>
+        <div class="step reveal" style="--i:3">
+          <div class="step-number mono">04</div>
+          <div class="step-title">Vous validez</div>
+          <p class="step-body">Le brouillon part vers Odoo seulement après votre feu vert.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Intégrations">
+    <div class="wrap">
+      <div class="section-head reveal" style="--i:0">
+        <h2>Se connecte à votre existant</h2>
+        <p>Pas de ressaisie — Nisab lit ce que vous utilisez déjà.</p>
+      </div>
+      <div class="integrations reveal" style="--i:1">
+        <span class="integration-mark"><span class="dot"></span>Odoo (lecture &amp; écriture)</span>
+        <span class="integration-mark"><span class="grid-icon"></span>CSV / Excel</span>
+        <span class="integration-mark"><span class="dot"></span>Facture scannée</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="securite">
+    <div class="wrap">
+      <div class="section-head reveal" style="--i:0">
+        <h2>Sécurité et gouvernance</h2>
+        <p>Prouvé par des tests, pas seulement documenté.</p>
+      </div>
+      <dl class="security-grid">
+        <div class="security-row reveal" style="--i:0">
+          <dt>Cloisonnement</dt>
+          <dd>Chaque cabinet est strictement isolé des autres, <strong>prouvé dans les deux sens</strong> — 14 scénarios testés, lecture et écriture.</dd>
+        </div>
+        <div class="security-row reveal" style="--i:1">
+          <dt>Rôles</dt>
+          <dd><strong>Collaborateur</strong>, <strong>dirigeant</strong> (lecture seule), <strong>admin cabinet</strong>, <strong>admin plateforme</strong> — jamais confondus.</dd>
+        </div>
+        <div class="security-row reveal" style="--i:2">
+          <dt>Journal d’accès</dt>
+          <dd>Chaque accès aux dossiers et à l’administration est tracé — exigence CNDP.</dd>
+        </div>
+        <div class="security-row reveal" style="--i:3">
+          <dt>Écritures comptables</dt>
+          <dd>Brouillon Odoo à l’état <strong>brouillon</strong>, jamais validé automatiquement.</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="final-cta-card reveal" style="--i:0">
+        <div>
+          <h2>On vous crée votre espace ?</h2>
+          <p>Inscription immédiate, pas de liste d’attente.</p>
+        </div>
+        <a class="btn btn-primary" href="http://localhost:5173/#creer">Créer mon espace cabinet</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <div class="footer-word">Nisab <span class="footer-word-sub">· Copilote fiscal IA</span></div>
+      <nav class="footer-links">
+        <a href="#preuve">Le produit</a>
+        <a href="#securite">Sécurité</a>
+        <a href="#comment">Comment ça marche</a>
+      </nav>
+    </div>
+    <div class="footer-meta">
+      <span class="mono">© 2026 IAAI Academy</span>
+    </div>
+    <div class="footer-credit">Conception &amp; développement · Bouchra Rguibi</div>
+  </div>
+</footer>
+
+<script>
+  const revealTargets = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  revealTargets.forEach((el) => io.observe(el));
+</script>
+
+</body>
+</html>
