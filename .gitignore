@@ -1,3 +1,7 @@
+# Outils locaux (skills / assistants) — jamais destinés au repo
+.hallmark/
+.claude/
+
 # Python
 __pycache__/
 *.py[cod]
