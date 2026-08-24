@@ -3,8 +3,7 @@ fichier_connecteur.py — Import d'un export comptable CSV / Excel.
 
 C'est le connecteur qui prouve réellement la Phase 5 : un cabinet sans Odoo
 alimente le même pipeline d'audit, sans qu'une seule ligne d'ai_auditor.py ait
-été modifiée. La preuve que le schéma pivot (voir base.py) était le bon choix.
-
+été modifiée. 
 ## Colonnes attendues
 
     date            2026-03-14        obligatoire
@@ -28,7 +27,7 @@ synonymes courants des exports Sage/Ciel sont également reconnus.
 **Les identifiants sont déterministes.** `move["id"]` est dérivé par hachage du
 numéro de pièce, pas d'un compteur. Réimporter le même fichier produit donc les
 mêmes identifiants — condition nécessaire pour que la clé métier des alertes
-(voir AlerteRisque dans models.py) reste stable et qu'une correction validée
+reste stable et qu'une correction validée
 par un humain ne se détache pas de son anomalie au prochain import.
 
 **Une ligne illisible ne fait pas échouer l'import.** Un export comptable réel

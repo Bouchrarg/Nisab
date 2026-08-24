@@ -162,7 +162,7 @@ export default function CorrectionsPage() {
             <div className="card-body" style={{ padding: 0 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
                 <thead>
-                  <tr style={{ textAlign: 'left', color: 'var(--sourdine)', fontSize: 11 }}>
+                  <tr style={{ borderBottom: '1px solid var(--bordure)', textAlign: 'left', color: 'var(--sourdine)', fontSize: 11 }}>
                     <th style={{ padding: '8px 12px', fontWeight: 600 }}>Statut</th>
                     <th style={{ padding: '8px 12px', fontWeight: 600 }}>Pièce</th>
                     <th style={{ padding: '8px 12px', fontWeight: 600 }}>Correction</th>
@@ -175,9 +175,9 @@ export default function CorrectionsPage() {
                       key={p.id}
                       onClick={() => ouvrir(p)}
                       style={{
-                        borderTop: '1px solid var(--bordure)',
+                        borderBottom: '1px solid var(--bordure)',
                         cursor: 'pointer',
-                        background: selection === p.id ? 'var(--toile)' : 'transparent',
+                        background: selection === p.id ? 'var(--surface-2)' : 'transparent',
                       }}
                     >
                       <td style={{ padding: '10px 12px' }}>
@@ -235,7 +235,7 @@ export default function CorrectionsPage() {
                       "non_calculable" reste affiché : la raison légale de
                       l'absence de montant est une information en soi. */}
                   {(detail.montant_detail || detail.categorie_montant) && (
-                    <div style={{ margin: '12px 0', padding: '8px 12px', background: 'var(--toile)', border: '1px solid var(--bordure)', borderRadius: 6 }}>
+                    <div style={{ margin: '12px 0', padding: '8px 12px', background: 'var(--toile)', border: '1px solid var(--bordure)', borderRadius: 'var(--radius-sm)' }}>
                       <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--sourdine)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 4 }}>
                         {detail.categorie_montant === 'non_calculable'
                           ? 'Montant non chiffrable automatiquement'

@@ -70,6 +70,7 @@ export default function DashboardPage({
     risks,
     total_exposure_dh,
     compliance_score,
+    pct_traitees,
     executive_summary,
     top_urgency,
   } = summary
@@ -318,15 +319,28 @@ export default function DashboardPage({
               />
 
               <GaugeSeuil
-                label="Score de Préparation à l'Audit"
-                score={Math.max(0, compliance_score - 8)}
+                label="Préparation à l'Audit"
+                // % d'anomalies actives déjà traitées (correction poussée
+                // dans Odoo ou statut mis à jour manuellement) — pas une
+                // relecture de compliance_score : deux dossiers avec le même
+                // nombre d'anomalies actives peuvent afficher des scores très
+                // différents ici selon ce qui a déjà été régularisé.
+                // pct_traitees est null quand il n'y a aucune anomalie :
+                // rien à traiter, donc rien qui bloque une préparation.
+                score={pct_traitees ?? 100}
                 threshold={75}
               />
 
               <GaugeSeuil
                 label="Score de Risque Fiscal"
-                score={Math.min(100, nb_anomalies * 12)}
+                // Pondéré par gravité plutôt que par simple décompte : deux
+                // dossiers à nombre d'anomalies égal mais mix rouge/orange
+                // différent obtiennent des scores différents ici, ce que
+                // compliance_score (qui ne compte que le total) ne distingue
+                // pas.
+                score={Math.min(100, risks.rouge * 15 + risks.orange * 6)}
                 threshold={60}
+                invert
               />
             </div>
           </div>

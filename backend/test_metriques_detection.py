@@ -28,9 +28,8 @@ sur les cas où celle-ci sait trancher — c'est la métrique qui justifie
 `detection_reglee.py` en complément du RAG (cf. CLAUDE.md, règle d'architecture
 "détection = RAG + règle déterministe, strictement complémentaire").
 
-Ne tourne QUE sur les scénarios de démo (`odoo_connector.py`), jamais sur un
-dossier réel — cf. CLAUDE.md, RGPD/CNDP.
 """
+
 import io
 import os
 import sys

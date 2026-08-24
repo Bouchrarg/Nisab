@@ -134,13 +134,19 @@ function AppShell() {
     localStorage.setItem('nisab_view', v)
   }
 
-  const openDossier = useCallback((dossier) => {
+  const openDossier = useCallback((dossier, view = 'dashboard') => {
     // Le dossier passé par CabinetOverviewPage (clic sur une carte ou une
     // alerte critique) était jusqu'ici silencieusement ignoré : on changeait
     // de vue sans jamais activer ce dossier, donc le Tableau de bord
     // continuait d'afficher l'ancien dossier actif.
+    //
+    // `view` par défaut sur 'dashboard' (comportement d'origine, tous les
+    // appelants existants restent inchangés) — paramétrable pour le lien
+    // "notifications de veille non lues" de la synthèse cabinet, qui doit
+    // ouvrir directement sur l'onglet Veille du dossier concerné, pas sur
+    // le tableau de bord puis obliger un 2e clic dans la sidebar.
     if (dossier) setActiveDossier(dossier)
-    changeView('dashboard')
+    changeView(view)
   }, [setActiveDossier])
 
   // LECTURE SEULE — ne lance jamais d'audit.

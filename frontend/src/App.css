@@ -302,6 +302,25 @@
   color: var(--sourdine);
   margin-top: 8px;
 }
+/* Lien inline (pas une puce/bouton séparé) : la partie "notifications de
+   veille non lues" de la ligne méta doit se comporter comme un lien —
+   demandé explicitement ("plus interactif, pas juste en sous-titre") après
+   que la version texte plat soit passée inaperçue. Reste dans le flux de la
+   phrase, hérite sa taille de police (`font: inherit`) : pas un nouveau
+   composant, juste ce fragment de texte qui devient cliquable. */
+.cabinet-hero-inline-link {
+  font: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--seuil);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.cabinet-hero-inline-link:hover { color: var(--seuil-dark); }
 
 /* ═══ KPI CARDS — Direction D : bande à filets, pas des cartes flottantes.
    Motif validé le 17/08 dans l'artifact (4 directions comparées) — même

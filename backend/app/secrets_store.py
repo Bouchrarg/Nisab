@@ -5,9 +5,7 @@ secrets_store.py — Chiffrement des identifiants ERP stockés en base.
 
 Pousser un brouillon de correction dans Odoo suppose de se reconnecter à Odoo
 au moment de la validation, donc de disposer des identifiants après la session
-de synchronisation initiale. La colonne `ConnexionComptable.identifiants_chiffres`
-était prévue depuis la Phase 1 et n'avait jamais été écrite.
-
+de synchronisation initiale. 
 Stocker un mot de passe ERP en clair dans une base multi-tenant serait
 indéfendable — c'est le mot de passe de la comptabilité d'un client du cabinet.
 D'où Fernet (AES-128-CBC + HMAC-SHA256, chiffrement authentifié) : un contenu
@@ -22,13 +20,11 @@ cette rotation rendrait **silencieusement illisibles** tous les identifiants ERP
 déjà stockés. On ne s'en apercevrait qu'à la première tentative de push, chez
 un client, sans comprendre pourquoi.
 
-## Ce qui n'est pas résolu ici, et qu'il faut dire
+## Ce qui n'est pas résolu ici
 
 Une clé unique pour toute la plateforme : quiconque a la clé et un accès base
 peut déchiffrer les identifiants de tous les cabinets. La vraie réponse serait
 un gestionnaire de secrets externe (Vault, KMS) avec une clé par organisation.
-C'est hors périmètre d'un MVP de stage, mais c'est une limite à énoncer plutôt
-qu'à laisser croire résolue.
 """
 
 from __future__ import annotations

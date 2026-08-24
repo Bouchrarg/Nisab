@@ -108,6 +108,10 @@ htmlcov/
 *.sqlite3
 *.db
 
+# Captures d'écran de démo (scripts/capture_screenshots.js) — données de
+# comptes de test réelles, matériel de soutenance, pas destiné au repo.
+/screenshots/
+
 # Docs internes / matériel de soutenance — sur disque, pas suivis par git
 # (contenu personnel, sans intérêt pour qui clone le repo)
 /CHANGELOG_ADMIN_DASHBOARD.md
@@ -117,3 +121,4 @@ htmlcov/
 /docs/CORRECTIONS_DIAGRAMMES_CONCEPTION.md
 /docs/DEMO_VEILLE.md
 /docs/implementation-plan.md
+/docs/planning-gantt-pert-swot.md

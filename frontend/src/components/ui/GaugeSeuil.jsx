@@ -1,5 +1,18 @@
-export default function GaugeSeuil({ label, score, threshold = 70, className = '' }) {
-  const cls = score >= threshold ? 'conforme' : score >= threshold * 0.75 ? 'vigilance' : 'critique'
+export default function GaugeSeuil({ label, score, threshold = 70, className = '', invert = false }) {
+  // invert=false (par défaut) : monter est bon (conformité, préparation) —
+  // vert au-dessus du seuil. invert=true : monter est mauvais (risque) — le
+  // seuil marque l'entrée en zone de vigilance, pas la sortie.
+  const cls = invert
+    ? score <= threshold
+      ? 'conforme'
+      : score <= threshold + (100 - threshold) / 2
+      ? 'vigilance'
+      : 'critique'
+    : score >= threshold
+    ? 'conforme'
+    : score >= threshold * 0.75
+    ? 'vigilance'
+    : 'critique'
   return (
     <div className={`gauge-wrap ${className}`}>
       <div className="gauge-header">

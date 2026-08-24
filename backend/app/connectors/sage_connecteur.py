@@ -3,7 +3,6 @@ sage_connecteur.py — Connecteur Sage 100c : NON IMPLÉMENTÉ, et assumé comme
 
 ## Pourquoi ce fichier existe alors qu'il ne fait rien
 
-Le cahier des charges cite « connecteurs logiciels comptables (Sage, Odoo...) ».
 La réponse honnête, pour un stage de 2 mois sans licence ni instance Sage, est :
 l'abstraction est le livrable, pas le connecteur.
 

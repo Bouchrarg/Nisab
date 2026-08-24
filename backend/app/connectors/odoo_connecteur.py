@@ -1,15 +1,3 @@
-"""
-odoo_connecteur.py — Adaptateur d'OdooConnector vers l'interface commune.
-
-Volontairement mince, et volontairement séparé de `app/odoo_connector.py` :
-ce dernier est importé tel quel par routes_dossiers.py et contient toute la
-logique XML-RPC + les scénarios de démonstration. Le déplacer pour « ranger »
-aurait produit un gros diff sans corriger quoi que ce soit.
-
-Ici on ne fait qu'une chose : donner à Odoo la même forme d'appel qu'aux
-autres sources, pour que les routes n'aient pas à savoir de qui elles parlent.
-"""
-
 from __future__ import annotations
 
 from app.connectors.base import AccountingConnector, ConnectorError

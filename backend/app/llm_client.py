@@ -2,7 +2,7 @@
 llm_client.py — Client LLM unifié avec fallback Groq → OpenRouter.
 
 Architecture :
-  1. Essai via Groq (rapide). Modèle par défaut : llama-3.3-70b-versatile,
+  1. Essai via Groq (rapide). Modèle par défaut : GROQ_MODEL_DEFAULT ci-dessous,
      mais chaque appel peut préciser un modèle différent (ex. un modèle
      plus léger pour les tâches de filtrage, afin de ménager le TPM).
   2. Si Groq échoue (rate limit, clé absente, erreur), fallback sur OpenRouter.
@@ -34,17 +34,25 @@ load_dotenv()
 # ── Groq ──────────────────────────────────────────────────────────────
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
-# Modèle par défaut : bonne qualité de raisonnement, quota TPM serré (~6-12K/min
-# sur le tier gratuit). À réserver aux tâches qui en ont vraiment besoin
-# (analyse de conformité finale).
-GROQ_MODEL_DEFAULT = "llama-3.3-70b-versatile"
+# Modèle par défaut : bonne qualité de raisonnement. À réserver aux tâches
+# qui en ont vraiment besoin (analyse de conformité finale).
+# NB : toute la gamme Llama 3.x a disparu du catalogue Groq (constaté le
+# 20/08/2026 — GET /openai/v1/models ne renvoyait plus aucun "llama-3.*",
+# y compris ce modèle, provoquant un 404 "model_not_found" sur CHAQUE appel
+# et donc un fallback OpenRouter systématique — le vrai coût n'est pas la
+# lenteur d'OpenRouter en soi mais l'échec Groq préalable répété à chaque
+# sous-étape). Groq a basculé son catalogue vers les modèles OpenAI OSS ;
+# revérifier via /openai/v1/models avant de figer un nouveau choix si ça
+# recommence.
+GROQ_MODEL_DEFAULT = "openai/gpt-oss-120b"
 
-# Modèle rapide/léger : quota bien plus généreux sur le tier gratuit
-# (14 400 req/jour, 500K tokens/jour). À utiliser pour les tâches plus
-# simples comme le filtrage de pertinence, qui n'ont pas besoin du
-# raisonnement le plus poussé mais consomment beaucoup de tokens en entrée
-# (plusieurs articles candidats par appel).
-GROQ_MODEL_FAST = "llama-3.1-8b-instant"
+# Modèle rapide/léger : à utiliser pour les tâches plus simples comme le
+# filtrage de pertinence, qui n'ont pas besoin du raisonnement le plus
+# poussé mais consomment beaucoup de tokens en entrée (plusieurs articles
+# candidats par appel). Coïncide maintenant avec OPENROUTER_MODEL (même
+# modèle, deux providers) — sans rapport, les deux catalogues ont juste
+# convergé vers le même choix raisonnable pour ce rôle.
+GROQ_MODEL_FAST = "openai/gpt-oss-20b"
 
 # ── OpenRouter (fallback) ─────────────────────────────────────────────
 OPENROUTER_KEY = os.environ.get("OPENROUTER_KEY")

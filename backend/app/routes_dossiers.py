@@ -971,6 +971,7 @@ def dashboard_summary(dossier_id: uuid.UUID, user: CurrentUser = Depends(get_cur
             # exigence que categorie_montant, qui refuse le zéro silencieux
             # quand on ne sait pas.
             "compliance_score": None,
+            "pct_traitees": None,
             "executive_summary": "Aucune analyse n'a encore été lancée sur ce dossier.",
             "executive_ton": "neutre",
             "date_dernier_audit": None,
@@ -980,8 +981,18 @@ def dashboard_summary(dossier_id: uuid.UUID, user: CurrentUser = Depends(get_cur
 
     findings = lu["findings"]
     risks = {"rouge": 0, "orange": 0, "vert": 0}
+    nb_traitees = 0
     for f in findings:
         risks[f.get("severity", "orange")] += 1
+        if f.get("statut") == "traitee":
+            nb_traitees += 1
+    # % d'anomalies actives déjà traitées (statut passé à "traitee" quand une
+    # correction est poussée dans Odoo, cf. routes_corrections.py) — reste
+    # actif=True tant qu'aucun nouvel audit n'a confirmé sa disparition, donc
+    # distinct de compliance_score qui ne compte que le nombre d'anomalies.
+    # None (pas 0/100) quand il n'y a aucune anomalie : rien à préparer n'est
+    # pas la même chose que "tout est préparé".
+    pct_traitees = round(100 * nb_traitees / len(findings)) if findings else None
     # cf. app.regles_montant : "non_calculable" a amount_risk=0 côté
     # _alerte_to_dict, mais ce n'est PAS un montant vérifié à zéro — le
     # compter dans le total sous-estimerait silencieusement l'exposition
@@ -1036,6 +1047,7 @@ def dashboard_summary(dossier_id: uuid.UUID, user: CurrentUser = Depends(get_cur
         "risks": risks,
         "total_exposure_dh": round(total_exposure, 2),
         "compliance_score": compliance_score,
+        "pct_traitees": pct_traitees,
         "executive_summary": exec_summary,
         "executive_ton": exec_ton,
         # Le résumé n'est plus recalculé à la volée : il faut pouvoir dire de

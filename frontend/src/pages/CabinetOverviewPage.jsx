@@ -33,6 +33,14 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
   const [creating, setCreating] = useState(false)
   const [lawFeed, setLawFeed] = useState([])
   const [echeances, setEcheances] = useState({}) // { [dossierId]: events[] | 'loading' | 'error' }
+  // Nb de notifications de veille NON LUES par dossier (routes_veille.py,
+  // même table que VeillePage.jsx) — pas un comptage d'articles du corpus en
+  // général : ne compte que les évolutions déjà ciblées sur un dossier parce
+  // qu'il a cité l'article concerné (cf. veille.py, diffusion par citation).
+  // "N articles mis à jour" n'existe nulle part côté API sans date fiable à
+  // comparer ; ce chiffre-ci est réel, déjà scopé par dossier, et répond à
+  // la vraie question ("y a-t-il de la veille à regarder ?").
+  const [veilleCounts, setVeilleCounts] = useState({}) // { [dossierId]: nb_non_lues | 'loading' | 'error' }
 
   useEffect(() => {
     dossiers.forEach((d) => {
@@ -47,6 +55,12 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
         .then((r) => (r.ok ? r.json() : Promise.reject()))
         .then((data) => setEcheances((prev) => ({ ...prev, [d.id]: data.events || [] })))
         .catch(() => setEcheances((prev) => ({ ...prev, [d.id]: 'error' })))
+
+      setVeilleCounts((prev) => (prev[d.id] !== undefined ? prev : { ...prev, [d.id]: 'loading' }))
+      apiFetch(`/dossiers/${d.id}/veille?non_lues_seulement=true`)
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((data) => setVeilleCounts((prev) => ({ ...prev, [d.id]: data.nb_non_lues || 0 })))
+        .catch(() => setVeilleCounts((prev) => ({ ...prev, [d.id]: 'error' })))
     })
   }, [dossiers])
 
@@ -182,6 +196,21 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
   const nextEcheanceDate = nextEcheance ? parseDate(nextEcheance.date) : null
   const todayLabel = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
+  // Total veille non lue, tous dossiers — somme simple, pas de nouvel appel
+  // (veilleCounts déjà chargé ci-dessus). Object.values sur un state qui
+  // peut contenir 'loading'/'error' avant que tout ait répondu : filtré au
+  // typeof, pas sommé tel quel (une chaîne concaténée casserait le total).
+  const totalVeilleNonLues = Object.values(veilleCounts).reduce((sum, v) => sum + (typeof v === 'number' ? v : 0), 0)
+
+  // Dossier à ouvrir si on clique sur le total : celui qui contribue le
+  // plus de non-lues, pas le premier de la liste — sur un cabinet à
+  // plusieurs dossiers, cliquer doit amener sur la veille qui a le plus de
+  // retard, pas sur un dossier choisi arbitrairement par son ordre d'ajout.
+  const topVeilleDossier = dossiers
+    .map((d) => ({ dossier: d, count: veilleCounts[d.id] }))
+    .filter(({ count }) => typeof count === 'number' && count > 0)
+    .sort((a, b) => b.count - a.count)[0]?.dossier || null
+
   // Salutation — chaleur par la personnalisation plutôt que par la couleur
   // (cf. commentaire .cabinet-hero dans App.css, option A retenue sur
   // maquette). Prénom = premier mot de nom_complet (rempli à l'inscription),
@@ -245,6 +274,28 @@ export default function CabinetOverviewPage({ onOpenDossier, onCriticalAlertsCha
                 {' '}· Prochaine échéance : {nextEcheance.title}
                 {nextEcheanceDate ? ` le ${nextEcheanceDate.day} ${nextEcheanceDate.month}` : ''}
               </>
+            )}
+            {/* Interactif seulement quand il y a réellement une action
+                derrière (des non-lues → un dossier précis à ouvrir sur son
+                onglet Veille) — le cas "corpus à jour" reste du texte, il
+                n'y a rien de dossier-spécifique à cliquer. Repli sur
+                `lawFeed`, déjà chargé plus bas sur cette page pour le widget
+                Veille légale (aucun nouvel appel). */}
+            {totalVeilleNonLues > 0 ? (
+              <>
+                {' '}·{' '}
+                <button
+                  type="button"
+                  className="cabinet-hero-inline-link"
+                  onClick={() => topVeilleDossier && onOpenDossier(topVeilleDossier, 'veille')}
+                >
+                  {totalVeilleNonLues} {totalVeilleNonLues > 1 ? 'notifications de veille non lues' : 'notification de veille non lue'}
+                </button>
+              </>
+            ) : (
+              lawFeed[0] && (
+                <> · Corpus à jour — dernier texte suivi : {lawFeed[0].reference || lawFeed[0].title}</>
+              )
             )}
           </div>
         </div>

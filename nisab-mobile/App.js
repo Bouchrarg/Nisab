@@ -1,8 +1,8 @@
 import { StatusBar } from 'expo-status-bar'
 import { useCallback, useState } from 'react'
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
-import { AlertTriangle, CalendarClock, LogOut, TrafficCone } from 'lucide-react-native'
+import { AlertTriangle, CalendarClock, LogOut, MessageSquare, TrafficCone } from 'lucide-react-native'
 import * as SplashScreen from 'expo-splash-screen'
 import { useFonts as useIBMPlexSans, IBMPlexSans_400Regular, IBMPlexSans_500Medium, IBMPlexSans_600SemiBold, IBMPlexSans_700Bold } from '@expo-google-fonts/ibm-plex-sans'
 import { useFonts as useIBMPlexMono, IBMPlexMono_400Regular, IBMPlexMono_500Medium, IBMPlexMono_600SemiBold } from '@expo-google-fonts/ibm-plex-mono'
@@ -13,7 +13,8 @@ import LoginScreen from './src/screens/LoginScreen'
 import FeuxScreen from './src/screens/FeuxScreen'
 import EcheancesScreen from './src/screens/EcheancesScreen'
 import AlertesScreen from './src/screens/AlertesScreen'
-import { colors, fonts, spacing } from './src/theme'
+import AssistantScreen from './src/screens/AssistantScreen'
+import { colors, fonts, radius, spacing } from './src/theme'
 
 // SafeAreaView de 'react-native' est déprécié ET, sur Android, ne calcule
 // jamais correctement les marges de la barre de statut/de gestes (le topbar
@@ -39,6 +40,7 @@ const TABS = [
 function AuthenticatedApp() {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('feux')
+  const [assistantOpen, setAssistantOpen] = useState(false)
   const ActiveScreen = TABS.find((t) => t.key === tab).Screen
 
   return (
@@ -58,6 +60,19 @@ function AuthenticatedApp() {
 
         <View style={styles.body}>
           <ActiveScreen />
+
+          {/* Persistant sur les 3 onglets (rendu ici, pas dans ActiveScreen)
+              plutôt qu'un 4e onglet : l'assistant n'est pas une section au
+              même niveau que Situation/Échéances/Alertes, c'est une action
+              transverse toujours disponible — cf. demande explicite de ne
+              pas le mettre dans TABS. */}
+          <TouchableOpacity
+            style={styles.assistantFab}
+            onPress={() => setAssistantOpen(true)}
+            activeOpacity={0.85}
+          >
+            <MessageSquare size={22} color={colors.accentInk} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.tabbar}>
@@ -73,6 +88,14 @@ function AuthenticatedApp() {
         </View>
         <StatusBar style="auto" />
       </SafeAreaView>
+
+      <Modal
+        visible={assistantOpen}
+        animationType="slide"
+        onRequestClose={() => setAssistantOpen(false)}
+      >
+        <AssistantScreen onClose={() => setAssistantOpen(false)} />
+      </Modal>
     </DossierProvider>
   )
 }
@@ -124,6 +147,18 @@ const styles = StyleSheet.create({
   topbarUser: { flex: 1, fontFamily: fonts.sans, fontSize: 12.5, color: colors.ardoise, textAlign: 'right' },
   logoutBtn: { padding: spacing.xs },
   body: { flex: 1 },
+  // Position ancrée au coin bas-droit du conteneur `body` (pas de la
+  // SafeAreaView entière) : elle reste au-dessus du contenu scrollable mais
+  // toujours au-dessus de la tabbar, quel que soit l'onglet actif.
+  assistantFab: {
+    position: 'absolute', right: spacing.lg, bottom: spacing.lg,
+    width: 52, height: 52, borderRadius: radius.full, backgroundColor: colors.seuil,
+    alignItems: 'center', justifyContent: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#1e0f0a', shadowOpacity: 0.22, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 5 },
+    }),
+  },
   tabbar: {
     flexDirection: 'row', backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.bordure,
     paddingVertical: spacing.sm,

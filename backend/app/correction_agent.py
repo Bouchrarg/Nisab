@@ -40,8 +40,7 @@ Beaucoup d'anomalies fiscales n'ont PAS de correction comptable. Un fournisseur
 sans ICE, une facture sans mentions obligatoires, un règlement en espèces déjà
 effectué : aucune écriture d'OD ne répare ça. Un prompt qui exigerait une
 écriture dans tous les cas en obtiendrait une — inventée, plausible, et fausse.
-D'où les quatre types de correction, dont deux sans écriture (voir
-TypeCorrection dans models.py).
+D'où les quatre types de correction.
 """
 
 from __future__ import annotations
@@ -229,7 +228,7 @@ def _construire_prompt_utilisateur(alerte: AlerteRisque, contexte_legal: str, co
     # ce chiffre (s'il existe) vient d'une formule déterministe, pas d'une
     # estimation LLM. Donné en LECTURE SEULE au modèle pour qu'il puisse en
     # parler dans sa justification s'il le souhaite — jamais redemandé en
-    # sortie structurée (cf. règle 5 du prompt système : il ne le produit plus).
+    # sortie structurée 
     if alerte.montant_exposition:
         montant = f"{float(alerte.montant_exposition):,.2f} DH (calculée par une règle déterministe, pas par toi)"
     else:
