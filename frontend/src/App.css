@@ -2346,6 +2346,36 @@
 }
 .auth-switch:hover { color: var(--auth-accent); }
 
+/* Encart identifiants de démo, sous le heading — mêmes teintes sage que
+   .citation-demo-pill (déjà associées à "info positive" dans cette page),
+   jamais le corail de .auth-alert qui lui signale une erreur. */
+.auth-demo {
+  background: var(--auth-sage);
+  color: var(--auth-sage-ink);
+  border-radius: var(--auth-radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.auth-demo-title { font-weight: 800; margin: 0 0 4px; }
+.auth-demo p { margin: 0; }
+.auth-demo-fill {
+  margin-top: 8px;
+  width: 100%;
+  padding: 8px;
+  border: 2px solid var(--auth-sage-ink);
+  border-radius: var(--auth-radius-full);
+  background: transparent;
+  color: var(--auth-sage-ink);
+  font-family: var(--auth-font-body);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background-color 120ms var(--auth-ease-out, ease-out), color 120ms var(--auth-ease-out, ease-out);
+}
+.auth-demo-fill:hover { background: var(--auth-sage-ink); color: var(--auth-sage); }
+
 @media (max-width: 860px) {
   .auth-split { grid-template-columns: 1fr; min-height: auto; }
   .auth-aside { padding: 40px 28px 32px; gap: 24px; }

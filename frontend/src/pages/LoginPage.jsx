@@ -86,6 +86,25 @@ export default function LoginPage() {
               {mode === 'login' ? 'Connexion à votre espace' : 'Créer votre cabinet ou dossier PME'}
             </h2>
 
+            {mode === 'login' && (
+              <div className="auth-demo">
+                <p className="auth-demo-title">Compte de démonstration</p>
+                <p>Email : demo@nisab.app</p>
+                <p>Mot de passe : NisabDemo2026!</p>
+                <p>Accès lecture seule à un cabinet avec des dossiers réels.</p>
+                <button
+                  type="button"
+                  className="auth-demo-fill"
+                  onClick={() => {
+                    setEmail('demo@nisab.app')
+                    setPassword('NisabDemo2026!')
+                  }}
+                >
+                  Remplir les identifiants de démonstration
+                </button>
+              </div>
+            )}
+
             <div className="auth-reveal" data-open={mode === 'register'}>
               <div className="auth-reveal-inner">
                 <div className="auth-field">
